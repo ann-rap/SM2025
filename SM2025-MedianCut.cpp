@@ -371,7 +371,7 @@ void narysujPaleta6bit(int px, int py, SDL_Color pal6[])
                 setPixel(x*40+xx+px, y*20+yy+py, pal6[k].r,pal6[k].g,pal6[k].b);
     }
 }
-
+/*
 void paletaMedianCutDithering6bit()
 {
     ileKubelkow = 0;
@@ -503,7 +503,7 @@ void paletaMedianCutBWDithering6bit()
     SDL_UpdateWindowSurface(window);
 }
 
-
+*/
 
 
 

@@ -165,3 +165,34 @@ void paletaWykryta6K()
     else
         cout << "Paleta nie spelnia ograniczen 6-bit / piksel" << endl;
 }
+
+void paletaNarzucona6BIT() {
+   czyscPalete6K();
+    int indexKoloru;
+    SDL_Color kolor,nowykolor;
+    for (int y = 0; y < wysokosc / 2; y++){
+        for(int x = 0; x < szerokosc/2; x++){
+            kolor = getPixel(x, y);
+            nowykolor = z6Kdo24K(z24Kdo6K(kolor));
+            indexKoloru = sprawdzKolor6K(nowykolor);
+            indeksy[y][x] = indexKoloru;
+            kolor = paleta6k[indexKoloru];
+            setPixel(x + szerokosc / 2, y, nowykolor.r, nowykolor.g, nowykolor.b);
+        }
+    }
+
+    for (int k = 0; k < 64; k++) {
+        paleta6k[k] = z6Kdo24K(k);
+    }
+
+    narysujPalete6BIT(0, 210, paleta6k);
+    SDL_UpdateWindowSurface(window);
+    //narysujPalete7BIT(0, 0, paleta7k);
+}
+
+
+//MedianCut6bit
+//narzucona6bit - WYKONANE!!!!
+//szara
+//wykryta7bit
+//mediancut7bitbw

@@ -6,6 +6,7 @@
 #include <SDL2/SDL.h>
 #include <iostream>
 #include <cmath>
+
 using namespace std;
 
 Uint8 z24Kdo6K(SDL_Color kolor);

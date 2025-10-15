@@ -27,5 +27,6 @@ extern Uint8 obrazekS[320*200];
 extern SDL_Color obrazekK[320*200];
 extern int obrazekIn[320*200];
 extern int obrazekInS[320*200];
+extern int indeksy[320][200];
 
 #endif // SM2025_ZMIENNE_H_INCLUDED

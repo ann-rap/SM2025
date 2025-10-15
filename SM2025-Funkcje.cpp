@@ -9,14 +9,14 @@
 void Funkcja1() {
 
     //...
-
+    paletaNarzucona6BIT();
     SDL_UpdateWindowSurface(window);
 }
 
 void Funkcja2() {
 
     //...
-
+    paletaWykryta6K();
     SDL_UpdateWindowSurface(window);
 }
 
