@@ -55,9 +55,10 @@ void Funkcja4() {
 }
 
 void Funkcja5() {
-    setHSL(szerokosc/2,0,193,0.67,0.28);
-}
+    HSL nowyKolor = getHSL(1,1);
+    setHSL(szerokosc/2,1,nowyKolor.h,nowyKolor.s,nowyKolor.l);
 
+}
 void Funkcja6() {
     // Rysowanie z zapisanego wyniku
     cout << "=== Funkcja 6: Rysowanie z wyniku ===" << endl;
@@ -80,7 +81,6 @@ void Funkcja7() {
 
 void Funkcja8() {
 
-    //...
 
     SDL_UpdateWindowSurface(window);
 }

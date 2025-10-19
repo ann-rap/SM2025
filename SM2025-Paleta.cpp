@@ -229,11 +229,12 @@ void paletaNarzuconaSzary6BIT(WynikStruct* wynik)
 
 
 YUV getYUV(int xx, int yy){
-    SDL_Color baseColor = getPixel(xx,yy);
+    SDL_Color bit8color  = getPixel(xx,yy);
+    SDL_Color kolor = z6Kdo24K(z24Kdo6K(bit8color));
     YUV newColor;
-    float r = baseColor.r;
-    float g = baseColor.g;
-    float b = baseColor.b;
+    float r = kolor.r;
+    float g = kolor.g;
+    float b = kolor.b;
     newColor.y = (0.299 * r) + (0.587 * g) + (0.114 * b);
     newColor.u = (-0.14713 * r) + (-0.28886 * g) + (0.436 * b);
     newColor.v = (0.615 * r) + (-0.51499 * g) + (-0.10001 * b);
@@ -242,21 +243,24 @@ YUV getYUV(int xx, int yy){
 }
 
 YIQ getYIQ(int xx,int yy){
-    SDL_Color baseColor = getPixel(xx,yy);
-    YIQ mewColor;
-    float r = baseColor.r;
-    float g = baseColor.g;
-    float b = baseColor.b;
-    mewColor.y = (0.299 * r) + (0.587 *g) + (0.114*b);
-    mewColor.i = (0.5959 * r) + (-0.2746 *g) + (-0.3213*b);
-    mewColor.q = (0.2115 * r) + (-0.5227 *g) + (0.3112*b);
+    SDL_Color bit8color  = getPixel(xx,yy);
+    SDL_Color kolor = z6Kdo24K(z24Kdo6K(bit8color));
+    YIQ newColor;
+    float r = kolor.r;
+    float g = kolor.g;
+    float b = kolor.b;
+    newColor.y = (0.299 * r) + (0.587 *g) + (0.114*b);
+    newColor.i = (0.5959 * r) + (-0.2746 *g) + (-0.3213*b);
+    newColor.q = (0.2115 * r) + (-0.5227 *g) + (0.3112*b);
 
 
-    return mewColor;
+    return newColor;
 
 }
 YCbCr getYCbCr(int xx, int yy){
-    SDL_Color kolor = getPixel(xx,yy);
+    SDL_Color bit8color  = getPixel(xx,yy);
+    SDL_Color kolor = z6Kdo24K(z24Kdo6K(bit8color));
+
     YCbCr nowyKolor;
     float r = kolor.r;
     float g = kolor.g;
@@ -320,7 +324,9 @@ Kolor normalizeAll(float r,float g,float b){
 
 
 HSL getHSL(int xx, int yy){
-    SDL_Color base = getPixel(xx,yy);
+    SDL_Color bit8color  = getPixel(xx,yy);
+    SDL_Color base = z6Kdo24K(z24Kdo6K(bit8color));
+
     float r = base.r/255.0;
     float g = base.g/255.0;
     float b = base.b/255.0;
@@ -330,16 +336,18 @@ HSL getHSL(int xx, int yy){
     float lum = (maxRGB + minRGB )/2;
     float sat;
 
+    //cout<<maxRGB<<" , "<<minRGB<<endl;
+
     if(minRGB == maxRGB){
         sat = 0.0;
     }
-    else if(lum>=0.5){
-        sat = (maxRGB-minRGB)/ (minRGB+maxRGB);
+    else if(lum<=0.5){
+        sat = (maxRGB-minRGB)/ (maxRGB+minRGB);
     }
-    else if(lum<0.5)
+    else if(lum>0.5)
     {
-    sat = (maxRGB-minRGB)/ (2.0 - minRGB - maxRGB);
-     }
+    sat = (maxRGB-minRGB)/ (2.0 - maxRGB - minRGB);
+    }
 
      float hue;
 
@@ -363,19 +371,21 @@ HSL getHSL(int xx, int yy){
      hsl.h = hue;
      hsl.s = sat;
      hsl.l = lum;
+
+     //cout<<hue<<" , "<<sat<<" , "<<lum<<endl;
      return hsl;
 
 }
 
 void setHSL(int xx, int yy, float h, float s, float l){
-    float r,g,b, var1, var2,barwa;
+    float r,g,b, var1, var2,barwa, zmienaR,zmienaG,zmienaB;
         if(s==0.0){
         r = l*255;
         g=b=r;
         setPixel(xx,yy,r,g,b);
         return;
     }
-    cout<<h<<" , "<<s<<" , "<<l<<endl;
+    //cout<<h<<" , "<<s<<" , "<<l<<endl;
 
 
 
@@ -387,49 +397,68 @@ void setHSL(int xx, int yy, float h, float s, float l){
     }
     var2 = 2.0*l - var1;
     barwa = h/360.0;
+    //cout<<var1 << " " << var2<<endl;
+    zmienaR=barwa+0.333;
+    //cout<<zmienaR<<endl;
+    zmienaG=barwa;
+    //cout<<zmienaG<<endl;
+    zmienaB=barwa - 0.333;
+    //cout<<zmienaB<<endl;
 
 
+    zmienaR=normalizeHsl(zmienaR);
+    //cout<<zmienaR<<endl;
+    zmienaG=normalizeHsl(zmienaG);
+    //cout<<zmienaG<<endl;
+    zmienaB=normalizeHsl(zmienaB);
+    //cout<<zmienaB<<endl;
 
-    r = test(normalizeHsl(barwa+0.333),var1,var2)*255;
-    g = test(normalizeHsl(barwa),var1,var2)*255;
-    b = test(normalizeHsl(barwa - 0.333), var1,var2)*255;
+    r=test(zmienaR,var1,var2);
+    //cout<<r<<endl;
+    g=test(zmienaG,var1,var2);
+    //cout<<g<<endl;
+    b=test(zmienaB,var1,var2);
+    //cout<<b<<endl;
 
-    cout<<r<<" , "<<g<<" , "<<b<<endl;
+    r*=255;
+    //cout<<r<<endl;
+    g*=255;
+    //cout<<g<<endl;
+    b*=255;
+    //cout<<b<<endl;
+
+
+    //cout<<r<<" , "<<g<<" , "<<b<<endl;
 
     setPixel(xx,yy,r,g,b);
 
 }
 
 float normalizeHsl(float x){
-    if(x>1){
-        return x-1;
+    if(x>1.0){
+        return x-1.0;
     }
-    else if(x<0){
-        return x+1;
+    else if(x<0.0){
+        return x+1.0;
     }
+    return x;
 }
 
 float test(float color , float var1, float var2){
     float tempColor;
-    if(color*6<1){
+    if(6*color <1){
         tempColor = var2+(var1-var2)*6*color;
     }
     //test 2
-    if(tempColor>1){
-        if(2*color<1){
+    else if(2*color <1){
             tempColor = var1;
-        }
     }
-
     //test3
-    if(tempColor>1 ){
-        if(3*color<2){
+    else if(3*color<2){
             tempColor = var2 +(var1-var2) * (0.666- color)*6;
-        }
     }
-
-    if(tempColor>2){
+    else if(3*color>2){
         tempColor = var2;
     }
-        return tempColor;
+    return tempColor;
 }
