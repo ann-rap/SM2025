@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <SDL2/SDL.h>
+#include "SM2025-Paleta.h"
 
 void Funkcja1();
 void Funkcja2();
@@ -20,5 +21,6 @@ void setPixel(int x, int y, Uint8 R, Uint8 G, Uint8 B);
 SDL_Color getPixel(int x, int y);
 void czyscEkran(Uint8 R, Uint8 G, Uint8 B);
 void ladujBMP(char const* nazwa, int x, int y);
+void rysujZStrukturyWynik(WynikStruct* wynik, int offsetX, int offsetY);
 
 #endif // SM2025_FUNKCJE_H_INCLUDED
