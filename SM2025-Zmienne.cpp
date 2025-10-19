@@ -17,4 +17,6 @@ Uint8 obrazekS[320*200];
 SDL_Color obrazekK[320*200];
 int obrazekIn[320*200];
 int obrazekInS[320*200];
+ int indeksy[320][200];
 extern SDL_Color paleta6s[64];
+

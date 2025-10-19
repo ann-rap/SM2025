@@ -15,8 +15,6 @@ void Funkcja1() {
             setYUV(x+szerokosc/2,y,nowyKolor.y,nowyKolor.u,nowyKolor.v);
          }
     }
-
-
     SDL_UpdateWindowSurface(window);
 }
 
@@ -28,7 +26,6 @@ void Funkcja2() {
             setYIQ(x,y + wysokosc/2,nowyKolor.y,nowyKolor.i,nowyKolor.q);
          }
     }
-
     SDL_UpdateWindowSurface(window);
 }
 

@@ -7,6 +7,7 @@
 #include <iostream>
 #include <cmath>
 #include <algorithm>
+
 using namespace std;
 
 // Struktura do zwracania wynikow

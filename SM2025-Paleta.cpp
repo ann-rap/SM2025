@@ -166,6 +166,7 @@ void paletaWykryta6K(WynikStruct* wynik)
         cout << "Paleta nie spelnia ograniczen 6-bit / piksel" << endl;
 }
 
+
 void paletaNarzucona6BIT(WynikStruct* wynik)
 {
     Uint8 kolor6bit;
