@@ -5,59 +5,79 @@
 #include "SM2025-MedianCut.h"
 #include "SM2025-Pliki.h"
 
-
+// Globalne zmienne do przechowywania wyników
+WynikStruct wynik1, wynik2, wynik3, wynik4, wynik5;
 void Funkcja1() {
 
-    //...
-    paletaNarzucona6BIT();
+    for(int y = 0; y<wysokosc/2;y++){
+         for(int x = 0; x <szerokosc/2;x++){
+            YUV nowyKolor = getYUV(x,y);
+            setYUV(x+szerokosc/2,y,nowyKolor.y,nowyKolor.u,nowyKolor.v);
+         }
+    }
     SDL_UpdateWindowSurface(window);
 }
 
 void Funkcja2() {
 
-    //...
-    paletaWykryta6K();
+    for(int y = 0; y<wysokosc/2;y++){
+         for(int x = 0; x <szerokosc/2;x++){
+            YIQ nowyKolor = getYIQ(x,y);
+            setYIQ(x,y + wysokosc/2,nowyKolor.y,nowyKolor.i,nowyKolor.q);
+         }
+    }
     SDL_UpdateWindowSurface(window);
 }
 
 void Funkcja3() {
 
-    //...
+    for(int y = 0; y<wysokosc/2;y++){
+         for(int x = 0; x <szerokosc/2;x++){
+            YCbCr nowyKolor = getYCbCr(x,y);
+            setYCbCr(x+szerokosc/2,y + wysokosc/2,nowyKolor.y,nowyKolor.cb,nowyKolor.cr);
+         }
+    }
 
     SDL_UpdateWindowSurface(window);
 }
-
 void Funkcja4() {
+ for(int y = 0; y<wysokosc/2;y++){
+         for(int x = 0; x <szerokosc/2;x++){
+            HSL nowyKolor = getHSL(x,y);
+            setHSL(x+szerokosc/2,y,nowyKolor.h,nowyKolor.s,nowyKolor.l);
+         }
+    }
+        SDL_UpdateWindowSurface(window);
 
-    //...
-
-    SDL_UpdateWindowSurface(window);
 }
 
 void Funkcja5() {
+    HSL nowyKolor = getHSL(1,1);
+    setHSL(szerokosc/2,1,nowyKolor.h,nowyKolor.s,nowyKolor.l);
 
-    //...
-
-    SDL_UpdateWindowSurface(window);
 }
-
 void Funkcja6() {
+    // Rysowanie z zapisanego wyniku
+    cout << "=== Funkcja 6: Rysowanie z wyniku ===" << endl;
 
-    //...
-
-    SDL_UpdateWindowSurface(window);
+    // Rysuj w prawym górnym rogu (szerokosc/2, 0)
+    //rysujZStrukturyWynik(&wynik1, szerokosc/2, 0);
+    //rysujZStrukturyWynik(&wynik2, szerokosc/2, 0);
+     //rysujZStrukturyWynik(&wynik3, szerokosc/2, 0);
+     rysujZStrukturyWynik(&wynik4, szerokosc/2, 0);
+    // rysujZStrukturyWynik(&wynik5, szerokosc/2, 0);
 }
 
 void Funkcja7() {
 
-    //...
+    // Czyszczenie ekranu
+    czyscEkran(0, 0, 0);
 
     SDL_UpdateWindowSurface(window);
 }
 
 void Funkcja8() {
 
-    //...
 
     SDL_UpdateWindowSurface(window);
 }
@@ -258,6 +278,32 @@ void ladujBMP(char const* nazwa, int x, int y) {
 void czyscEkran(Uint8 R, Uint8 G, Uint8 B)
 {
     SDL_FillRect(screen, 0, SDL_MapRGB(screen->format, R, G, B));
+    SDL_UpdateWindowSurface(window);
+}
+
+// Rysuje obrazek z struktury WynikStruct
+void rysujZStrukturyWynik(WynikStruct* wynik, int offsetX, int offsetY)
+{
+    int index = 0;
+    SDL_Color kolor;
+
+    for (int y = 0; y < wysokosc/2; y++)
+    {
+        for (int x = 0; x < szerokosc/2; x++)
+        {
+            // Pobierz indeks koloru dla tego piksela
+            Uint8 indeksKoloru = wynik->indeksy[index];
+
+            // Pobierz kolor z palety
+            kolor = wynik->paleta[indeksKoloru];
+
+            // Narysuj piksel z przesunięciem
+            setPixel(x + offsetX, y + offsetY, kolor.r, kolor.g, kolor.b);
+
+            index++;
+        }
+    }
+
     SDL_UpdateWindowSurface(window);
 }
 

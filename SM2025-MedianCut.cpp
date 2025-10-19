@@ -9,7 +9,7 @@ using namespace std;
 
 
 //Czarny-Bialy - 6 bit
-void paletaMedianCutBW6bit()
+void paletaMedianCutBW6bit(WynikStruct* wynik)
 {
     ileKubelkow=0;
     ileKolorow=0;
@@ -31,15 +31,26 @@ void paletaMedianCutBW6bit()
 
     MedianCutBW6bit(0,numer-1,6);
 
+    int index=0;
     for(int y=0;y<wysokosc/2;y++)
     {
         for(int x=0;x<szerokosc/2;x++)
         {
             szary=getPixel(x+szerokosc/2,y).r;
             indeks=znajdzSasiadaBW6bit(szary);
+
+            // Zapisz indeks do struktury
+            wynik->indeksy[index] = indeks;
+            index++;
+
             setPixel(x+szerokosc/2, y, paleta6[indeks].r,paleta6[indeks].g, paleta6[indeks].b);
             obrazekIn[y * (szerokosc / 2) + x]=indeks;
         }
+    }
+
+      // Skopiuj paletê do struktury wyniku
+    for (int i = 0; i < 64; i++) {
+        wynik->paleta[i] = paleta6[i];
     }
 
     narysujPaletaBW6bit(0,220,paleta6);
@@ -159,7 +170,7 @@ int znajdzSasiadaBW6bit(Uint8 wartosc)
 }
 
 //Kolorowe - 6 bit
-void paletaMedianCut6bit()
+void paletaMedianCut6bit(WynikStruct* wynik)
 {
     ileKubelkow = 0;
     ileKolorow = 0;
@@ -183,16 +194,26 @@ void paletaMedianCut6bit()
 
     MedianCut6bit(0, numer-1,6);
 
+    int index=0;
     for(int y=0;y<wysokosc/2;y++)
     {
         for(int x=0;x<szerokosc/2;x++)
         {
             kolor=getPixel(x,y);
             indeks=znajdzSasiada6bit(kolor);
+
+            // Zapisz indeks do struktury
+            wynik->indeksy[index] = indeks;
+            index++;
+
             setPixel(x + szerokosc/2, y,
                      paleta6[indeks].r,paleta6[indeks].g, paleta6[indeks].b);
              obrazekIn[y * (szerokosc / 2) + x]=indeks;
         }
+    }
+
+    for (int i = 0; i < 64; i++) {
+        wynik->paleta[i] = paleta6[i];
     }
 
     narysujPaleta6bit(0,220, paleta6);
@@ -371,141 +392,3 @@ void narysujPaleta6bit(int px, int py, SDL_Color pal6[])
                 setPixel(x*40+xx+px, y*20+yy+py, pal6[k].r,pal6[k].g,pal6[k].b);
     }
 }
-/*
-void paletaMedianCutDithering6bit()
-{
-    ileKubelkow = 0;
-    ileKolorow = 0;
-    czyscPalete6bit();
-    zaktualizujTabliceBayera4();
-
-    SDL_Color kolor;
-    int numer = 0;
-
-   //tworzy palete mediancut
-    for (int y = 0; y < wysokosc / 2; y++)
-    {
-        for (int x = 0; x < szerokosc / 2; x++)
-        {
-            kolor = getPixel(x, y);
-            obrazekK[numer] = { kolor.r, kolor.g, kolor.b };
-            numer++;
-        }
-    }
-
-
-    MedianCut6bit(0, numer - 1, 6);
-
-   //dithering
-    float zakresK = 255.0 / 3.0;
-    Uint8 r, g, b, r6bit, g6bit, b6bit, tablicaK;
-    SDL_Color nowyKolor;
-
-    for (int y = 0; y < wysokosc / 2; y++)
-    {
-        for (int x = 0; x < szerokosc / 2; x++)
-        {
-            kolor = getPixel(x, y);
-            r = kolor.r;
-            g = kolor.g;
-            b = kolor.b;
-
-
-            tablicaK = zaktualizowanaTablicaBayera4k[y % 4][x % 4];
-
-
-            int zakresR = r / zakresK;
-            r6bit = (r - zakresR * zakresK > tablicaK) ? zakresR + 1 : zakresR;
-            r6bit = clamp(r6bit, 0, 3);
-
-            int zakresG = g / zakresK;
-            g6bit = (g - zakresG * zakresK > tablicaK) ? zakresG + 1 : zakresG;
-            g6bit = clamp(g6bit, 0, 3);
-
-            int zakresB = b / zakresK;
-            b6bit = (b - zakresB * zakresK > tablicaK) ? zakresB + 1 : zakresB;
-            b6bit = clamp(b6bit, 0, 3);
-
-            nowyKolor.r = r6bit * zakresK;
-            nowyKolor.g = g6bit * zakresK;
-            nowyKolor.b = b6bit * zakresK;
-
-            int indeks = znajdzSasiada6bit(nowyKolor);
-
-            setPixel(x + szerokosc / 2, y,
-                    paleta6[indeks].r, paleta6[indeks].g, paleta6[indeks].b);
-
-            obrazekIn[y * (szerokosc / 2) + x] = indeks;
-        }
-    }
-
-    narysujPaleta6bit(0, 220, paleta6);
-}
-
-void paletaMedianCutBWDithering6bit()
-{
-    ileKubelkow = 0;
-    ileKolorow = 0;
-    czyscPalete6bit();
-    zaktualizujTabliceBayera4();
-
-    SDL_Color kolor;
-    int szary = 0, numer = 0, indeks = 0;
-
-    // Skala szarosci paleta dedykowana
-    for(int y = 0; y < wysokosc/2; y++)
-    {
-        for(int x = 0; x < szerokosc/2; x++)
-        {
-            kolor = getPixel(x, y);
-            szary = kolor.r * 0.299 + kolor.g * 0.587 + kolor.b * 0.114;
-            obrazekS[numer] = szary;
-            setPixel(x + szerokosc/2, y, szary, szary, szary);
-            numer++;
-        }
-    }
-
-    MedianCutBW6bit(0, numer-1, 6);
-
-
-    float zakresS = 255.0/63.0;
-    Uint8 szary6bit, tablicaK;
-    SDL_Color nowySzary;
-
-    for(int y = 0; y < wysokosc/2; y++)
-    {
-        for(int x = 0; x < szerokosc/2; x++)
-        {
-            szary = getPixel(x + szerokosc/2, y).r;
-
-            // Tablica dla szarosci
-            tablicaK = zaktualizowanaTablicaBayera4s[y % 4][x % 4];
-
-            int zakres = szary / zakresS;
-            szary6bit = (szary - zakres * zakresS > tablicaK) ? zakres + 1 : zakres;
-            szary6bit = clamp(szary6bit, 0, 63);
-
-
-            Uint8 ditheredGray = szary6bit * zakresS;
-
-
-            indeks = znajdzSasiadaBW6bit(ditheredGray);
-
-
-            setPixel(x + szerokosc/2, y,
-                    paleta6[indeks].r, paleta6[indeks].g, paleta6[indeks].b);
-
-            obrazekIn[y * (szerokosc / 2) + x] = indeks;
-        }
-    }
-
-    narysujPaletaBW6bit(0, 220, paleta6);
-    SDL_UpdateWindowSurface(window);
-}
-
-*/
-
-
-
-
-
