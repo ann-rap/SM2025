@@ -4348,7 +4348,7 @@
 1760875166 source:c:\users\lap_h\desktop\sm2025-projekt\sm2025-zmienne.cpp
 	"SM2025-Zmienne.h"
 
-1760899137 source:c:\users\dominik\downloads\sm2025-projekt\sm2025-projekt\sm2025-funkcje.cpp
+1761413895 source:c:\users\dominik\downloads\sm2025-projekt\sm2025-projekt\sm2025-funkcje.cpp
 	"SM2025-Funkcje.h"
 	"SM2025-Zmienne.h"
 	"SM2025-Paleta.h"
@@ -4754,7 +4754,7 @@
 	"begin_code.h"
 	"close_code.h"
 
-1760899137 c:\users\dominik\downloads\sm2025-projekt\sm2025-projekt\sm2025-paleta.h
+1761410831 c:\users\dominik\downloads\sm2025-projekt\sm2025-projekt\sm2025-paleta.h
 	<stdio.h>
 	<stdlib.h>
 	<SDL2/SDL.h>
@@ -4762,7 +4762,7 @@
 	<cmath>
 	<algorithm>
 
-1760898426 c:\users\dominik\downloads\sm2025-projekt\sm2025-projekt\sm2025-zmienne.h
+1760899485 c:\users\dominik\downloads\sm2025-projekt\sm2025-projekt\sm2025-zmienne.h
 	<SDL2/SDL.h>
 
 1760875166 c:\users\dominik\downloads\sm2025-projekt\sm2025-projekt\sm2025-mediancut.h
@@ -4775,14 +4775,14 @@
 	<fstream>
 	<SDL2/SDL.h>
 
-1760875166 source:c:\users\dominik\downloads\sm2025-projekt\sm2025-projekt\sm2025-mediancut.cpp
+1760899485 source:c:\users\dominik\downloads\sm2025-projekt\sm2025-projekt\sm2025-mediancut.cpp
 	"SM2025-MedianCut.h"
 	"SM2025-Zmienne.h"
 	"SM2025-Funkcje.h"
 	"SM2025-Paleta.h"
 	<iostream>
 
-1760899137 source:c:\users\dominik\downloads\sm2025-projekt\sm2025-projekt\sm2025-paleta.cpp
+1761413397 source:c:\users\dominik\downloads\sm2025-projekt\sm2025-projekt\sm2025-paleta.cpp
 	"SM2025-Paleta.h"
 	"SM2025-Zmienne.h"
 	"SM2025-Funkcje.h"
@@ -4807,7 +4807,7 @@
 	<math.h>
 	<SDL2/SDL.h>
 
-1760899137 source:c:\users\dominik\downloads\sm2025-projekt\sm2025-projekt\sm2025-zmienne.cpp
+1760899485 source:c:\users\dominik\downloads\sm2025-projekt\sm2025-projekt\sm2025-zmienne.cpp
 	"SM2025-Zmienne.h"
 
 1760540334 source:c:\users\domin\downloads\sm2025\sm2025-funkcje.cpp

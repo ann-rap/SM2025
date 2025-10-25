@@ -1,4 +1,4 @@
-// funkcje do redukcji kolor�w i tworzenia palet
+// funkcje do redukcji kolorów i tworzenia palet
 #include "SM2025-Paleta.h"
 #include "SM2025-Zmienne.h"
 #include "SM2025-Funkcje.h"
@@ -463,3 +463,106 @@ float test(float color , float var1, float var2){
     }
     return tempColor;
 }
+
+
+
+
+/////////////Lab3///////////////////////
+
+void setRGB555(int xx, int yy, Uint8 r, Uint8 g, Uint8 b){
+    //idk czy wejście to normalne czy już zmienione na 555
+     int nowyR, nowyG, nowyB;
+    Uint16 kolor16bit;
+    nowyR = round(r*31.0/255.0);//5bit zakrs 0-31;
+    nowyG = round(g*31.0/255.0);
+    nowyB = round(b*31.0/255.0);
+
+    kolor16bit = (nowyR<<10) | (nowyG<<5) | nowyB;
+    setRGB555(xx,yy,kolor16bit);
+}
+void setRGB555(int xx, int yy, Uint16 rgb555){
+    SDL_Color kolor24bit;
+    int nowyR, nowyG, nowyB;
+    nowyR = (rgb555&(0b0111110000000000))>>10;
+    nowyG = (rgb555&(0b0000001111100000))>>5;
+    nowyB = (rgb555&(0b0000000000011111));
+    kolor24bit.r=nowyR*255.0/31.0;
+    kolor24bit.g=nowyG*255.0/31.0;
+    kolor24bit.b=nowyB*255.0/31.0;
+    setPixel(xx,yy,kolor24bit.r,kolor24bit.g,kolor24bit.b);
+}
+void setRGB565(int xx, int yy, Uint8 r, Uint8 g, Uint8 b){
+    //idk czy wejście to normalne czy już zmienione na 555
+       int nowyR, nowyG, nowyB;
+    Uint16 kolor16bit;
+    nowyR = round(r*31.0/255.0);//5bit zakrs 0-31;
+    nowyG = round(g*63.0/255.0);
+    nowyB = round(b*31.0/255.0);
+
+    kolor16bit = (nowyR<<11) | (nowyG<<5) | nowyB;
+    setRGB565(xx,yy,kolor16bit);
+}
+void setRGB565(int xx, int yy, Uint16 rgb565){
+   SDL_Color kolor24bit;
+    int nowyR, nowyG, nowyB;
+    nowyR = (rgb565&(0b1111100000000000))>>11;
+    nowyG = (rgb565&(0b0000011111100000))>>5;
+    nowyB = (rgb565&(0b0000000000011111));
+    kolor24bit.r=nowyR*255.0/31.0;
+    kolor24bit.g=nowyG*255.0/63.0;
+    kolor24bit.b=nowyB*255.0/31.0;
+    setPixel(xx,yy,kolor24bit.r,kolor24bit.g,kolor24bit.b);
+}
+
+SDL_Color getRGB555(int xx, int yy){
+    Uint16 kolor16bit = getRGB555_(xx,yy);
+    SDL_Color kolor24bit;
+    int nowyR, nowyG, nowyB;
+    nowyR = (kolor16bit&(0b0111110000000000))>>10;
+    nowyG = (kolor16bit&(0b0000001111100000))>>5;
+    nowyB = (kolor16bit&(0b0000000000011111));
+    kolor24bit.r=nowyR*255.0/31.0;
+    kolor24bit.g=nowyG*255.0/31.0;
+    kolor24bit.b=nowyB*255.0/31.0;
+    return kolor24bit;
+}
+
+Uint16 getRGB555_(int xx, int yy){
+    SDL_Color kolor = getPixel(xx,yy);
+     Uint16 kolor16bit;
+    int nowyR, nowyG, nowyB;
+
+    nowyR = round(kolor.r*31.0/255.0);//5bit zakrs 0-31;
+    nowyG = round(kolor.g*31.0/255.0);
+    nowyB = round(kolor.b*31.0/255.0);
+
+    kolor16bit = (nowyR<<10) | (nowyG<<5) | nowyB;
+    //bity: 15 pusty ,14-10 r, 9-5 g, 4-0 b
+    return kolor16bit;
+}
+SDL_Color getRGB565(int xx, int yy){
+      Uint16 kolor16bit = getRGB565_(xx,yy);
+    SDL_Color kolor24bit;
+    int nowyR, nowyG, nowyB;
+    nowyR = (kolor16bit&(0b1111100000000000))>>11;
+    nowyG = (kolor16bit&(0b0000011111100000))>>6;
+    nowyB = (kolor16bit&(0b0000000000011111));
+    kolor24bit.r=nowyR*255.0/31.0;
+    kolor24bit.g=nowyG*255.0/63.0;
+    kolor24bit.b=nowyB*255.0/31.0;
+    return kolor24bit;
+}
+Uint16 getRGB565_(int xx, int yy){
+    SDL_Color kolor = getPixel(xx,yy);
+    Uint16 kolor16bit;
+    int nowyR, nowyG, nowyB;
+
+    nowyR = round(kolor.r*31.0/255.0);//5bit zakrs 0-31;
+    nowyG = round(kolor.g*63.0/255.0);
+    nowyB = round(kolor.b*31.0/255.0);
+
+    kolor16bit = (nowyR<<11) | (nowyG<<5) | nowyB;
+    //bity: 15-11 r, 10-5 g, 4-0 b
+    return kolor16bit;
+}
+

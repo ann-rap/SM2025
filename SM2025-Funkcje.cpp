@@ -17,24 +17,24 @@ void Funkcja1() {
     }
     SDL_UpdateWindowSurface(window);
 }
-
+//////RGB555-------
 void Funkcja2() {
 
     for(int y = 0; y<wysokosc/2;y++){
          for(int x = 0; x <szerokosc/2;x++){
-            YIQ nowyKolor = getYIQ(x,y);
-            setYIQ(x,y + wysokosc/2,nowyKolor.y,nowyKolor.i,nowyKolor.q);
+            Uint16 kolor = getRGB555_(x,y);
+            setRGB555(x,y+wysokosc/2,kolor);
          }
     }
     SDL_UpdateWindowSurface(window);
 }
-
+////////RGB565------
 void Funkcja3() {
 
     for(int y = 0; y<wysokosc/2;y++){
          for(int x = 0; x <szerokosc/2;x++){
-            YCbCr nowyKolor = getYCbCr(x,y);
-            setYCbCr(x+szerokosc/2,y + wysokosc/2,nowyKolor.y,nowyKolor.cb,nowyKolor.cr);
+            Uint16 nowyKolor = getRGB565_(x,y);
+            setRGB565(x+szerokosc/2,y + wysokosc/2,nowyKolor);
          }
     }
 
