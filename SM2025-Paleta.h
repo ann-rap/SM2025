@@ -80,4 +80,16 @@ void paletaWykryta6K(WynikStruct* wynik);
 float normalizeHsl(float x);
 
 
+void setRGB555(int xx, int yy, Uint8 r, Uint8 g, Uint8 b);
+void setRGB555(int xx, int yy, Uint16 rgb555);
+void setRGB565(int xx, int yy, Uint8 r, Uint8 g, Uint8 b);
+void setRGB565(int xx, int yy, Uint16 rgb565);
+
+SDL_Color getRGB555(int xx, int yy);
+Uint16 getRGB555_(int xx, int yy);
+SDL_Color getRGB565(int xx, int yy);
+Uint16 getRGB565_(int xx, int yy);
+
+
+
 #endif // SM2025_PALETA_H_INCLUDED
