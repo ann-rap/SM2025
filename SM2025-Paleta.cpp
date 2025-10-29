@@ -566,3 +566,188 @@ Uint16 getRGB565_(int xx, int yy){
     return kolor16bit;
 }
 
+/*////////////
+// Dithering /
+*/////////////
+
+int tablicaBayera4[4][4] = {{6,14,8,16},
+                            {10,2,12,4},
+                            {7,15,5,13},
+                            {11,3,9,1}};
+
+
+
+void zaktualizujTabliceBayera4(){
+    float zakresK=255/3;
+    float zakresS = 255/63;
+    int rozmiar = 4;
+    float podzialK = zakresK /(rozmiar*rozmiar);
+    float podzialS = zakresS /(rozmiar*rozmiar);
+
+
+    for(int y =0; y< rozmiar; y++){
+        for(int x=0; x<rozmiar; x++){
+            zaktualizowanaTablicaBayera4k[y][x]=(tablicaBayera4[y][x]*podzialK)-podzialK/2;
+            zaktualizowanaTablicaBayera4s[y][x]=(tablicaBayera4[y][x]*podzialS)-podzialS/2;
+
+        }
+    }
+
+    for(int y =0; y< rozmiar; y++){
+            cout << endl;
+        for(int x=0; x<rozmiar; x++){
+            cout << tablicaBayera4[y][x]<<" ";
+        }
+    }
+    cout << endl;
+
+    for(int y =0; y< rozmiar; y++){
+            cout << endl;
+        for(int x=0; x<rozmiar; x++){
+            cout << zaktualizowanaTablicaBayera4k[y][x]<<" ";
+        }
+    }
+    cout << endl;
+        for(int y =0; y< rozmiar; y++){
+            cout << endl;
+        for(int x=0; x<rozmiar; x++){
+            cout << zaktualizowanaTablicaBayera4s[y][x]<<" ";
+        }
+    }
+    cout << endl;
+}
+// getRGB555D - odczyt z ditheringiem Bayera dla RGB555
+SDL_Color getRGB555D(int xx, int yy){
+    SDL_Color kolor = getPixel(xx, yy);
+
+    // Pozycja w tablicy Bayera 4x4
+    int bayerX = xx % 4;
+    int bayerY = yy % 4;
+    float prog = zaktualizowanaTablicaBayera4k[bayerY][bayerX];
+
+    // Dodaj wartość z tablicy Bayera przed kwantyzacją
+    int r = kolor.r + prog;
+    int g = kolor.g + prog;
+    int b = kolor.b + prog;
+
+    // Ogranicz do zakresu 0-255
+    r = (r < 0) ? 0 : (r > 255) ? 255 : r;
+    g = (g < 0) ? 0 : (g > 255) ? 255 : g;
+    b = (b < 0) ? 0 : (b > 255) ? 255 : b;
+
+    // Konwersja do RGB555 (5 bitów na kanał)
+    int nowyR = round(r * 31.0 / 255.0);
+    int nowyG = round(g * 31.0 / 255.0);
+    int nowyB = round(b * 31.0 / 255.0);
+
+    Uint16 kolor16bit = (nowyR << 10) | (nowyG << 5) | nowyB;
+
+    // Konwersja z powrotem do 24-bit
+    SDL_Color kolor24bit;
+    nowyR = (kolor16bit & (0b0111110000000000)) >> 10;
+    nowyG = (kolor16bit & (0b0000001111100000)) >> 5;
+    nowyB = (kolor16bit & (0b0000000000011111));
+
+    kolor24bit.r = nowyR * 255.0 / 31.0;
+    kolor24bit.g = nowyG * 255.0 / 31.0;
+    kolor24bit.b = nowyB * 255.0 / 31.0;
+
+    return kolor24bit;
+}
+
+// getRGB555D_ - zwraca wartość Uint16 z ditheringiem
+Uint16 getRGB555D_(int xx, int yy){
+    SDL_Color kolor = getPixel(xx, yy);
+
+    // Pozycja w tablicy Bayera 4x4
+    int bayerX = xx % 4;
+    int bayerY = yy % 4;
+    float prog = zaktualizowanaTablicaBayera4k[bayerY][bayerX];
+
+    // Dodaj wartość z tablicy Bayera
+    int r = kolor.r + prog;
+    int g = kolor.g + prog;
+    int b = kolor.b + prog;
+
+    // Ogranicz do zakresu 0-255
+    r = (r < 0) ? 0 : (r > 255) ? 255 : r;
+    g = (g < 0) ? 0 : (g > 255) ? 255 : g;
+    b = (b < 0) ? 0 : (b > 255) ? 255 : b;
+
+    // Konwersja do RGB555
+    int nowyR = round(r * 31.0 / 255.0);
+    int nowyG = round(g * 31.0 / 255.0);
+    int nowyB = round(b * 31.0 / 255.0);
+
+    Uint16 kolor16bit = (nowyR << 10) | (nowyG << 5) | nowyB;
+
+    return kolor16bit;
+}
+
+// getRGB565D - odczyt z ditheringiem Bayera dla RGB565
+SDL_Color getRGB565D(int xx, int yy){
+    SDL_Color kolor = getPixel(xx, yy);
+
+    // Pozycja w tablicy Bayera 4x4
+    int bayerX = xx % 4;
+    int bayerY = yy % 4;
+    float prog = zaktualizowanaTablicaBayera4k[bayerY][bayerX];
+
+    // Dodaj wartość z tablicy Bayera przed kwantyzacją
+    int r = kolor.r + prog;
+    int g = kolor.g + prog;
+    int b = kolor.b + prog;
+
+    // Ogranicz do zakresu 0-255
+    r = (r < 0) ? 0 : (r > 255) ? 255 : r;
+    g = (g < 0) ? 0 : (g > 255) ? 255 : g;
+    b = (b < 0) ? 0 : (b > 255) ? 255 : b;
+
+    // Konwersja do RGB565 (5 bitów R, 6 bitów G, 5 bitów B)
+    int nowyR = round(r * 31.0 / 255.0);
+    int nowyG = round(g * 63.0 / 255.0);  // 6 bitów dla zielonego!
+    int nowyB = round(b * 31.0 / 255.0);
+
+    Uint16 kolor16bit = (nowyR << 11) | (nowyG << 5) | nowyB;
+
+    // Konwersja z powrotem do 24-bit
+    SDL_Color kolor24bit;
+    nowyR = (kolor16bit & (0b1111100000000000)) >> 11;
+    nowyG = (kolor16bit & (0b0000011111100000)) >> 5;
+    nowyB = (kolor16bit & (0b0000000000011111));
+
+    kolor24bit.r = nowyR * 255.0 / 31.0;
+    kolor24bit.g = nowyG * 255.0 / 63.0;
+    kolor24bit.b = nowyB * 255.0 / 31.0;
+
+    return kolor24bit;
+}
+
+// getRGB565D_ - zwraca wartość Uint16 z ditheringiem
+Uint16 getRGB565D_(int xx, int yy){
+    SDL_Color kolor = getPixel(xx, yy);
+
+    // Pozycja w tablicy Bayera 4x4
+    int bayerX = xx % 4;
+    int bayerY = yy % 4;
+    float prog = zaktualizowanaTablicaBayera4k[bayerY][bayerX];
+
+    // Dodaj wartość z tablicy Bayera
+    int r = kolor.r + prog;
+    int g = kolor.g + prog;
+    int b = kolor.b + prog;
+
+    // Ogranicz do zakresu 0-255
+    r = (r < 0) ? 0 : (r > 255) ? 255 : r;
+    g = (g < 0) ? 0 : (g > 255) ? 255 : g;
+    b = (b < 0) ? 0 : (b > 255) ? 255 : b;
+
+    // Konwersja do RGB565
+    int nowyR = round(r * 31.0 / 255.0);
+    int nowyG = round(g * 63.0 / 255.0);
+    int nowyB = round(b * 31.0 / 255.0);
+
+    Uint16 kolor16bit = (nowyR << 11) | (nowyG << 5) | nowyB;
+
+    return kolor16bit;
+}
