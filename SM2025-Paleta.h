@@ -90,6 +90,12 @@ Uint16 getRGB555_(int xx, int yy);
 SDL_Color getRGB565(int xx, int yy);
 Uint16 getRGB565_(int xx, int yy);
 
+SDL_Color getRGB555D(int xx, int yy);
+Uint16 getRGB555D_(int xx, int yy);
+SDL_Color getRGB565D(int xx, int yy);
+Uint16 getRGB565D_(int xx, int yy);
+void zaktualizujTabliceBayera4();
+
 
 
 #endif // SM2025_PALETA_H_INCLUDED

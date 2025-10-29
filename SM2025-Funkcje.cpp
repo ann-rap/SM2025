@@ -57,21 +57,28 @@ void Funkcja5() {
 
 }
 void Funkcja6() {
-    // Rysowanie z zapisanego wyniku
-    cout << "=== Funkcja 6: Rysowanie z wyniku ===" << endl;
+   zaktualizujTabliceBayera4();  // Inicjalizacja tablicy Bayera
 
-    // Rysuj w prawym górnym rogu (szerokosc/2, 0)
-    //rysujZStrukturyWynik(&wynik1, szerokosc/2, 0);
-    //rysujZStrukturyWynik(&wynik2, szerokosc/2, 0);
-     //rysujZStrukturyWynik(&wynik3, szerokosc/2, 0);
-     rysujZStrukturyWynik(&wynik4, szerokosc/2, 0);
-    // rysujZStrukturyWynik(&wynik5, szerokosc/2, 0);
+    for(int y = 0; y < wysokosc/2; y++){
+        for(int x = 0; x < szerokosc/2; x++){
+            Uint16 kolor = getRGB555D_(x, y);
+            setRGB555(x, y + wysokosc/2, kolor);
+        }
+    }
+    SDL_UpdateWindowSurface(window);
 }
 
 void Funkcja7() {
+ zaktualizujTabliceBayera4();  // Inicjalizacja tablicy Bayera
 
-    // Czyszczenie ekranu
-    czyscEkran(0, 0, 0);
+    for(int y = 0; y < wysokosc/2; y++){
+        for(int x = 0; x < szerokosc/2; x++){
+            Uint16 nowyKolor = getRGB565D_(x, y);
+            setRGB565(x + szerokosc/2, y + wysokosc/2, nowyKolor);
+        }
+    }
+    SDL_UpdateWindowSurface(window);
+
 
     SDL_UpdateWindowSurface(window);
 }
@@ -84,7 +91,8 @@ void Funkcja8() {
 
 void Funkcja9() {
 
-    //...
+    // Czyszczenie ekranu
+    czyscEkran(0, 0, 0);
 
     SDL_UpdateWindowSurface(window);
 }
