@@ -44,6 +44,11 @@ struct HSL{
     float l;
 };
 
+void subsample420_YUV(int width, int height);
+void subsample420_YIQ(int width, int height);
+void subsample420_YCbCr(int width, int height);
+void subsample420_HSL(int width, int height);
+
 void setPixelByStruct(int x, int y, Kolor kolor);
 float normalize(float part);
 Kolor normalizeAll(float r,float g,float b);

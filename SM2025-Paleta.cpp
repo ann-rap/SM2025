@@ -227,82 +227,15 @@ void paletaNarzuconaSzary6BIT(WynikStruct* wynik)
 
 }
 
-
-
-YUV getYUV(int xx, int yy){
-    SDL_Color bit8color  = getPixel(xx,yy);
-    SDL_Color kolor = z6Kdo24K(z24Kdo6K(bit8color));
-    YUV newColor;
-    float r = kolor.r;
-    float g = kolor.g;
-    float b = kolor.b;
-    newColor.y = (0.299 * r) + (0.587 * g) + (0.114 * b);
-    newColor.u = (-0.14713 * r) + (-0.28886 * g) + (0.436 * b);
-    newColor.v = (0.615 * r) + (-0.51499 * g) + (-0.10001 * b);
-
-    return newColor;
-}
-
-YIQ getYIQ(int xx,int yy){
-    SDL_Color bit8color  = getPixel(xx,yy);
-    SDL_Color kolor = z6Kdo24K(z24Kdo6K(bit8color));
-    YIQ newColor;
-    float r = kolor.r;
-    float g = kolor.g;
-    float b = kolor.b;
-    newColor.y = (0.299 * r) + (0.587 *g) + (0.114*b);
-    newColor.i = (0.5959 * r) + (-0.2746 *g) + (-0.3213*b);
-    newColor.q = (0.2115 * r) + (-0.5227 *g) + (0.3112*b);
-
-
-    return newColor;
-
-}
-YCbCr getYCbCr(int xx, int yy){
-    SDL_Color bit8color  = getPixel(xx,yy);
-    SDL_Color kolor = z6Kdo24K(z24Kdo6K(bit8color));
-
-    YCbCr nowyKolor;
-    float r = kolor.r;
-    float g = kolor.g;
-    float b = kolor.b;
-    nowyKolor.y = 0 + (0.299 * r) + (0.587 * g) + (0.114 * b);
-    nowyKolor.cb = 128 - (0.168736 * r) - (0.331264 * g) + (0.5 * b);
-    nowyKolor.cr = 128 + (0.5 * r) - (0.418688 * g) - (0.081312 * b);
-
-    return nowyKolor;
-}
-
-
-void setYUV(int xx, int yy, float y, float u, float v){
-    float r = y + (0 * u) + (1.13983 * v);
-    float g = y + (-0.39465 * u) + (-0.58060 * v);
-    float b = y + (2.03211 * u) + (0 * v);
-
-    setPixelByStruct(xx,yy, normalizeAll(r,g,b));
-
-}
+/*===== Set z strukturą =====*/
 
 void setPixelByStruct(int x, int y, Kolor kolor){
     setPixel(x,y,kolor.r,kolor.g,kolor.b);
 }
-void setYIQ(int xx, int yy, float y, float i, float q){
-    float r = y + (0.956 * i) + (0.619 * q);
-    float g = y + (-0.272 * i) + (-0.647 * q);
-    float b = y + (-1.106 * i) + (1.703 * q);
 
- setPixelByStruct(xx,yy, normalizeAll(r,g,b));
 
- }
+/* ====== Normalizacja ===== */
 
-void setYCbCr(int xx, int yy, float y, float cb, float cr){
-    float r = y + 1.402 * (cr - 128);
-    float g = y - 0.344136 * (cb -128) - 0.714136 * (cr -128);
-    float b = y + 1.772 * (cb -128);
-
-    setPixelByStruct(xx,yy, normalizeAll(r,g,b));
-
-}
 float normalize(float part){
     if(part>255.0){
         return 255.0;
@@ -323,6 +256,175 @@ Kolor normalizeAll(float r,float g,float b){
     return kolor;
 }
 
+float normalizeHsl(float x){
+    if(x>1.0){
+        return x-1.0;
+    }
+    else if(x<0.0){
+        return x+1.0;
+    }
+    return x;
+}
+
+/* ====== YUV ===== */
+
+YUV getYUV(int xx, int yy){
+    SDL_Color bit8color  = getPixel(xx,yy);
+    SDL_Color kolor = z6Kdo24K(z24Kdo6K(bit8color));
+    YUV newColor;
+    float r = kolor.r;
+    float g = kolor.g;
+    float b = kolor.b;
+    newColor.y = (0.299 * r) + (0.587 * g) + (0.114 * b);
+    newColor.u = (-0.14713 * r) + (-0.28886 * g) + (0.436 * b);
+    newColor.v = (0.615 * r) + (-0.51499 * g) + (-0.10001 * b);
+
+    return newColor;
+}
+
+void setYUV(int xx, int yy, float y, float u, float v){
+    float r = y + (0 * u) + (1.13983 * v);
+    float g = y + (-0.39465 * u) + (-0.58060 * v);
+    float b = y + (2.03211 * u) + (0 * v);
+
+    setPixelByStruct(xx,yy, normalizeAll(r,g,b));
+
+}
+
+//P4
+void subsample420_YUV(int width, int height){
+    for (int y = 0; y < height; y += 2) {
+        for (int x = 0; x < width; x += 2) {
+            int x1 = (x + 1 < width)  ? x + 1 : x;
+            int y1 = (y + 1 < height) ? y + 1 : y;
+
+            YUV c00 = getYUV(x,  y );
+            YUV c10 = getYUV(x1, y );
+            YUV c01 = getYUV(x,  y1);
+            YUV c11 = getYUV(x1, y1);
+
+            //Chrominancji U i V
+            float u_avg = (c00.u + c10.u + c01.u + c11.u) / 4.0f;
+            float v_avg = (c00.v + c10.v + c01.v + c11.v) / 4.0f;
+
+            setYUV(x+szerokosc/2,  y,  c00.y, u_avg, v_avg);
+            if (x + 1 < width)
+                setYUV(x1+szerokosc/2, y,  c10.y, u_avg, v_avg);
+            if (y + 1 < height)
+                setYUV(x+szerokosc/2,  y1, c01.y, u_avg, v_avg);
+            if (x + 1 < width && y + 1 < height)
+                setYUV(x1+szerokosc/2, y1, c11.y, u_avg, v_avg);
+        }
+    }
+}
+/* ====== YIQ ===== */
+
+YIQ getYIQ(int xx,int yy){
+    SDL_Color bit8color  = getPixel(xx,yy);
+    SDL_Color kolor = z6Kdo24K(z24Kdo6K(bit8color));
+    YIQ newColor;
+    float r = kolor.r;
+    float g = kolor.g;
+    float b = kolor.b;
+    newColor.y = (0.299 * r) + (0.587 *g) + (0.114*b);
+    newColor.i = (0.5959 * r) + (-0.2746 *g) + (-0.3213*b);
+    newColor.q = (0.2115 * r) + (-0.5227 *g) + (0.3112*b);
+
+
+    return newColor;
+
+}
+
+void setYIQ(int xx, int yy, float y, float i, float q){
+    float r = y + (0.956 * i) + (0.619 * q);
+    float g = y + (-0.272 * i) + (-0.647 * q);
+    float b = y + (-1.106 * i) + (1.703 * q);
+
+ setPixelByStruct(xx,yy, normalizeAll(r,g,b));
+
+ }
+
+ //P4
+ void subsample420_YIQ(int width, int height){
+    for (int y = 0; y < height; y += 2) {
+        for (int x = 0; x < width; x += 2) {
+            int x1 = (x + 1 < width)  ? x + 1 : x;
+            int y1 = (y + 1 < height) ? y + 1 : y;
+
+            YIQ c00 = getYIQ(x,  y );
+            YIQ c10 = getYIQ(x1, y );
+            YIQ c01 = getYIQ(x,  y1);
+            YIQ c11 = getYIQ(x1, y1);
+
+            //Chrominancji I i Q
+            float i_avg = (c00.i + c10.i + c01.i + c11.i) / 4.0f;
+            float q_avg = (c00.q + c10.q + c01.q + c11.q) / 4.0f;
+
+            setYIQ(x,  y+wysokosc/2,  c00.y, i_avg, q_avg);
+            if (x + 1 < width)
+                setYIQ(x1, y+wysokosc/2,  c10.y, i_avg, q_avg);
+            if (y + 1 < height)
+                setYIQ(x,  y1+wysokosc/2, c01.y, i_avg, q_avg);
+            if (x + 1 < width && y + 1 < height)
+                setYIQ(x1, y1+wysokosc/2, c11.y, i_avg, q_avg);
+        }
+    }
+}
+
+ /* ====== YCbCr ===== */
+
+YCbCr getYCbCr(int xx, int yy){
+    SDL_Color bit8color  = getPixel(xx,yy);
+    SDL_Color kolor = z6Kdo24K(z24Kdo6K(bit8color));
+
+    YCbCr nowyKolor;
+    float r = kolor.r;
+    float g = kolor.g;
+    float b = kolor.b;
+    nowyKolor.y = 0 + (0.299 * r) + (0.587 * g) + (0.114 * b);
+    nowyKolor.cb = 128 - (0.168736 * r) - (0.331264 * g) + (0.5 * b);
+    nowyKolor.cr = 128 + (0.5 * r) - (0.418688 * g) - (0.081312 * b);
+
+    return nowyKolor;
+}
+
+void setYCbCr(int xx, int yy, float y, float cb, float cr){
+    float r = y + 1.402 * (cr - 128);
+    float g = y - 0.344136 * (cb -128) - 0.714136 * (cr -128);
+    float b = y + 1.772 * (cb -128);
+
+    setPixelByStruct(xx,yy, normalizeAll(r,g,b));
+
+}
+
+//P4
+void subsample420_YCbCr(int width, int height){
+    for (int y = 0; y < height; y += 2) {
+        for (int x = 0; x < width; x += 2) {
+            int x1 = (x + 1 < width)  ? x + 1 : x;
+            int y1 = (y + 1 < height) ? y + 1 : y;
+
+            YCbCr c00 = getYCbCr(x,  y );
+            YCbCr c10 = getYCbCr(x1, y );
+            YCbCr c01 = getYCbCr(x,  y1);
+            YCbCr c11 = getYCbCr(x1, y1);
+
+            //Chrominancji Cb i Cr
+            float cb_avg = (c00.cb + c10.cb + c01.cb + c11.cb) / 4.0f;
+            float cr_avg = (c00.cr + c10.cr + c01.cr + c11.cr) / 4.0f;
+
+            setYCbCr(x+szerokosc/2,  y+wysokosc/2,  c00.y, cb_avg, cr_avg);
+            if (x + 1 < width)
+                setYCbCr(x1+szerokosc/2, y+wysokosc/2,  c10.y, cb_avg, cr_avg);
+            if (y + 1 < height)
+                setYCbCr(x+szerokosc/2,  y1+wysokosc/2, c01.y, cb_avg, cr_avg);
+            if (x + 1 < width && y + 1 < height)
+                setYCbCr(x1+szerokosc/2, y1+wysokosc/2, c11.y, cb_avg, cr_avg);
+        }
+    }
+}
+
+/* ===== HSL ===== */
 
 HSL getHSL(int xx, int yy){
     SDL_Color bit8color  = getPixel(xx,yy);
@@ -339,33 +441,29 @@ HSL getHSL(int xx, int yy){
 
     //cout<<maxRGB<<" , "<<minRGB<<endl;
 
-    if(minRGB == maxRGB){
+    float hue = 0.0f;
+
+    if (minRGB == maxRGB) {
         sat = 0.0;
-    }
-    else if(lum<=0.5){
-        sat = (maxRGB-minRGB)/ (maxRGB+minRGB);
-    }
-    else if(lum>0.5)
-    {
-    sat = (maxRGB-minRGB)/ (2.0 - maxRGB - minRGB);
-    }
+        hue = 0.0;
+    } else {
+        if (lum <= 0.5) {
+            sat = (maxRGB-minRGB)/ (maxRGB+minRGB);
+        } else {
+            sat = (maxRGB-minRGB)/ (2.0 - maxRGB - minRGB);
+        }
 
-     float hue;
+        if (r == maxRGB) {
+            hue = (g-b)/ (maxRGB-minRGB);
+        } else if (g == maxRGB) {
+            hue = 2.0 + (b-r)/(maxRGB-minRGB);
+        } else {
+            hue = 4.0 + (r-g)/(maxRGB-minRGB);
+        }
 
-     if(r == maxRGB){
-        hue = (g-b)/ (maxRGB-minRGB);
-     }
-     else if(g == maxRGB){
-        hue = 2.0 + (b-r)/(maxRGB-minRGB);
-     }
-     else if(b == maxRGB){
-        hue = 4.0 + (r-g)/(maxRGB-minRGB);
-     }
-
-     hue*=60.0;
-     if(hue<0){
-        hue+=360;
-     }
+        hue *= 60.0;
+        if (hue < 0.0) hue += 360.0;
+    }
 
 
      HSL hsl;
@@ -380,7 +478,7 @@ HSL getHSL(int xx, int yy){
 
 void setHSL(int xx, int yy, float h, float s, float l){
     float r,g,b, var1, var2,barwa, zmienaR,zmienaG,zmienaB;
-        if(s==0.0){
+    if(s==0.0){
         r = l*255;
         g=b=r;
         setPixel(xx,yy,r,g,b);
@@ -388,10 +486,8 @@ void setHSL(int xx, int yy, float h, float s, float l){
     }
     //cout<<h<<" , "<<s<<" , "<<l<<endl;
 
-
-
     if(l>=0.5){
-        var1 = l+s-l*s;
+        var1 = (l+s)-(l*s);
     }
     else if(l<0.5){
         var1 = l*(1.0+s);
@@ -435,35 +531,66 @@ void setHSL(int xx, int yy, float h, float s, float l){
 
 }
 
-float normalizeHsl(float x){
-    if(x>1.0){
-        return x-1.0;
-    }
-    else if(x<0.0){
-        return x+1.0;
-    }
-    return x;
-}
 
 float test(float color , float var1, float var2){
     float tempColor;
-    if(6*color <1){
+    if(6*color <1.0){
         tempColor = var2+(var1-var2)*6*color;
     }
     //test 2
-    else if(2*color <1){
+    else if(2*color <1.0){
             tempColor = var1;
     }
     //test3
-    else if(3*color<2){
+    else if(3*color<2.0){
             tempColor = var2 +(var1-var2) * (0.666- color)*6;
     }
-    else if(3*color>2){
+    else if(3*color>=2.0){
         tempColor = var2;
     }
     return tempColor;
 }
 
+//P4
+void subsample420_HSL(int width, int height)
+{
+    for (int y = 0; y < height; y += 2) {
+        for (int x = 0; x < width; x += 2) {
+
+            int x1 = (x + 1 < width)  ? x + 1 : x;
+            int y1 = (y + 1 < height) ? y + 1 : y;
+
+            HSL c00 = getHSL(x,  y );
+            HSL c10 = getHSL(x1, y );
+            HSL c01 = getHSL(x,  y1);
+            HSL c11 = getHSL(x1, y1);
+
+            float h_avg;
+            {
+                float sumX = cos(c00.h * M_PI / 180.0) +
+                             cos(c10.h * M_PI / 180.0) +
+                             cos(c01.h * M_PI / 180.0) +
+                             cos(c11.h * M_PI / 180.0);
+
+                float sumY = sin(c00.h * M_PI / 180.0) +
+                             sin(c10.h * M_PI / 180.0) +
+                             sin(c01.h * M_PI / 180.0) +
+                             sin(c11.h * M_PI / 180.0);
+
+                h_avg = atan2(sumY, sumX) * 180.0 / M_PI;
+                if (h_avg < 0.0) h_avg += 360.0;
+            }
+
+            float s_avg = (c00.s + c10.s + c01.s + c11.s) / 4.0;
+
+
+            setHSL(x+szerokosc/2,  y,  h_avg, s_avg, c00.l);
+            setHSL(x1+szerokosc/2, y,  h_avg, s_avg, c10.l);
+            setHSL(x+szerokosc/2,  y1, h_avg, s_avg, c01.l);
+            setHSL(x1+szerokosc/2, y1, h_avg, s_avg, c11.l);
+        }
+    }
+}
 
 
 

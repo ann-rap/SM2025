@@ -8,13 +8,11 @@
 // Globalne zmienne do przechowywania wyników
 WynikStruct wynik1, wynik2, wynik3, wynik4, wynik5;
 void Funkcja1() {
+    //P4
+    subsample420_YUV(szerokosc/2, wysokosc/2);
+    subsample420_YIQ(szerokosc/2, wysokosc/2);
+    subsample420_YCbCr(szerokosc/2, wysokosc/2);
 
-    for(int y = 0; y<wysokosc/2;y++){
-         for(int x = 0; x <szerokosc/2;x++){
-            YUV nowyKolor = getYUV(x,y);
-            setYUV(x+szerokosc/2,y,nowyKolor.y,nowyKolor.u,nowyKolor.v);
-         }
-    }
     SDL_UpdateWindowSurface(window);
 }
 //////RGB555-------
@@ -52,9 +50,10 @@ void Funkcja4() {
 }
 
 void Funkcja5() {
-    HSL nowyKolor = getHSL(1,1);
-    setHSL(szerokosc/2,1,nowyKolor.h,nowyKolor.s,nowyKolor.l);
+    //P4
+    subsample420_HSL(szerokosc/2, wysokosc/2);
 
+    SDL_UpdateWindowSurface(window);
 }
 void Funkcja6() {
    zaktualizujTabliceBayera4();  // Inicjalizacja tablicy Bayera
