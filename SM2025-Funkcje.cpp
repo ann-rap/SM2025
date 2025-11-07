@@ -21,7 +21,7 @@ void Funkcja2() {
     for(int y = 0; y<wysokosc/2;y++){
          for(int x = 0; x <szerokosc/2;x++){
             Uint16 kolor = getRGB555_(x,y);
-            setRGB555(x,y+wysokosc/2,kolor);
+            setRGB555(x,y,kolor);
          }
     }
     SDL_UpdateWindowSurface(window);
@@ -32,19 +32,20 @@ void Funkcja3() {
     for(int y = 0; y<wysokosc/2;y++){
          for(int x = 0; x <szerokosc/2;x++){
             Uint16 nowyKolor = getRGB565_(x,y);
-            setRGB565(x+szerokosc/2,y + wysokosc/2,nowyKolor);
+            setRGB565(x,y,nowyKolor);
          }
     }
 
     SDL_UpdateWindowSurface(window);
 }
+////////HSL------
 void Funkcja4() {
- for(int y = 0; y<wysokosc/2;y++){
-         for(int x = 0; x <szerokosc/2;x++){
-            HSL nowyKolor = getHSL(x,y);
-            setHSL(x+szerokosc/2,y,nowyKolor.h,nowyKolor.s,nowyKolor.l);
-         }
-    }
+         for(int y = 0; y<wysokosc/2;y++){
+                 for(int x = 0; x <szerokosc/2;x++){
+                    HSL nowyKolor = getHSL(x,y);
+                    setHSL(x,y,nowyKolor.h,nowyKolor.s,nowyKolor.l);
+                 }
+            }
         SDL_UpdateWindowSurface(window);
 
 }
@@ -83,8 +84,11 @@ void Funkcja7() {
 }
 
 void Funkcja8() {
+    zapiszYUVDoBufora();
 
-
+    filtrujYUV_Typ1();     odfiltrujYUV_Typ1();
+    filtrujRGB555_Typ1();  odfiltrujRGB555_Typ1();
+    filtrujRGB565_Typ1();  odfiltrujRGB565_Typ1();
     SDL_UpdateWindowSurface(window);
 }
 
@@ -313,4 +317,6 @@ void rysujZStrukturyWynik(WynikStruct* wynik, int offsetX, int offsetY)
 
     SDL_UpdateWindowSurface(window);
 }
+
+
 

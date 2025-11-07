@@ -3,6 +3,15 @@
 #include "SM2025-Zmienne.h"
 #include "SM2025-Funkcje.h"
 
+SDL_Color filtrPNG[320][200];
+YUV filtrYUV[320][200];
+Uint8 filtrRGB555_lo[320][200];
+Uint8 filtrRGB555_hi[320][200];
+Uint8 filtrRGB565_lo[320][200];
+Uint8 filtrRGB565_hi[320][200];
+
+YUV buforYUV[320][200];
+
 Uint8 z24Kdo6K(SDL_Color kolor)
 {
     Uint8 kolor6bit;
@@ -269,8 +278,7 @@ float normalizeHsl(float x){
 /* ====== YUV ===== */
 
 YUV getYUV(int xx, int yy){
-    SDL_Color bit8color  = getPixel(xx,yy);
-    SDL_Color kolor = z6Kdo24K(z24Kdo6K(bit8color));
+    SDL_Color kolor  = getPixel(xx,yy);
     YUV newColor;
     float r = kolor.r;
     float g = kolor.g;
@@ -320,8 +328,7 @@ void subsample420_YUV(int width, int height){
 /* ====== YIQ ===== */
 
 YIQ getYIQ(int xx,int yy){
-    SDL_Color bit8color  = getPixel(xx,yy);
-    SDL_Color kolor = z6Kdo24K(z24Kdo6K(bit8color));
+    SDL_Color kolor  = getPixel(xx,yy);
     YIQ newColor;
     float r = kolor.r;
     float g = kolor.g;
@@ -374,9 +381,7 @@ void setYIQ(int xx, int yy, float y, float i, float q){
  /* ====== YCbCr ===== */
 
 YCbCr getYCbCr(int xx, int yy){
-    SDL_Color bit8color  = getPixel(xx,yy);
-    SDL_Color kolor = z6Kdo24K(z24Kdo6K(bit8color));
-
+    SDL_Color kolor  = getPixel(xx,yy);
     YCbCr nowyKolor;
     float r = kolor.r;
     float g = kolor.g;
@@ -427,8 +432,7 @@ void subsample420_YCbCr(int width, int height){
 /* ===== HSL ===== */
 
 HSL getHSL(int xx, int yy){
-    SDL_Color bit8color  = getPixel(xx,yy);
-    SDL_Color base = z6Kdo24K(z24Kdo6K(bit8color));
+    SDL_Color base  = getPixel(xx,yy);
 
     float r = base.r/255.0;
     float g = base.g/255.0;
@@ -878,3 +882,579 @@ Uint16 getRGB565D_(int xx, int yy){
 
     return kolor16bit;
 }
+
+//Filtrowanie
+
+int paeth(int a,int b,int c){
+    int p=a+b-c;
+    int pa=abs(p-a), pb=abs(p-b), pc=abs(p-c);
+    if(pa<=pb && pa<=pc) return a;
+    else if(pb<=pc) return b;
+    else return c;
+}
+
+void filtrujPNG_Typ1() {
+    int width = szerokosc/2, height = wysokosc/2;
+    for(int y=0;y<height;y++){
+        for(int x=0;x<width;x++){
+            SDL_Color cur = getPixel(x,y);
+            SDL_Color left = (x>0)? getPixel(x-1,y): SDL_Color{0,0,0};
+            filtrPNG[x][y].r = (cur.r - left.r + 256)%256;
+            filtrPNG[x][y].g = (cur.g - left.g + 256)%256;
+            filtrPNG[x][y].b = (cur.b - left.b + 256)%256;
+        }
+    }
+}
+
+void filtrujPNG_Typ2() {
+    int width = szerokosc/2, height = wysokosc/2;
+    for(int y=0;y<height;y++){
+        for(int x=0;x<width;x++){
+            SDL_Color cur = getPixel(x,y);
+            SDL_Color up = (y>0)? getPixel(x,y-1): SDL_Color{0,0,0};
+            filtrPNG[x][y].r = (cur.r - up.r + 256)%256;
+            filtrPNG[x][y].g = (cur.g - up.g + 256)%256;
+            filtrPNG[x][y].b = (cur.b - up.b + 256)%256;
+        }
+    }
+}
+
+void filtrujPNG_Typ3() {
+    int width = szerokosc/2, height = wysokosc/2;
+    for(int y=0;y<height;y++){
+        for(int x=0;x<width;x++){
+            SDL_Color cur = getPixel(x,y);
+            SDL_Color left = (x>0)? getPixel(x-1,y): SDL_Color{0,0,0};
+            SDL_Color up   = (y>0)? getPixel(x,y-1): SDL_Color{0,0,0};
+            filtrPNG[x][y].r = (cur.r - ((left.r+up.r)/2) + 256)%256;
+            filtrPNG[x][y].g = (cur.g - ((left.g+up.g)/2) + 256)%256;
+            filtrPNG[x][y].b = (cur.b - ((left.b+up.b)/2) + 256)%256;
+        }
+    }
+}
+
+void filtrujPNG_Typ4() {
+    int width = szerokosc/2, height = wysokosc/2;
+    for(int y=0;y<height;y++){
+        for(int x=0;x<width;x++){
+            SDL_Color cur=getPixel(x,y);
+            SDL_Color left=(x>0)? getPixel(x-1,y):SDL_Color{0,0,0};
+            SDL_Color up=(y>0)? getPixel(x,y-1):SDL_Color{0,0,0};
+            SDL_Color upLeft=(x>0 && y>0)? getPixel(x-1,y-1):SDL_Color{0,0,0};
+            filtrPNG[x][y].r=(cur.r - paeth(left.r,up.r,upLeft.r)+256)%256;
+            filtrPNG[x][y].g=(cur.g - paeth(left.g,up.g,upLeft.g)+256)%256;
+            filtrPNG[x][y].b=(cur.b - paeth(left.b,up.b,upLeft.b)+256)%256;
+        }
+    }
+}
+
+//Odfiltrowywanie
+void odfiltrujPNG_Typ1() {
+    int width = szerokosc/2, height = wysokosc/2;
+    for(int y=0;y<height;y++){
+        for(int x=0;x<width;x++){
+            SDL_Color f = filtrPNG[x][y];
+            SDL_Color left = (x>0)? getPixel(x-1,y+height): SDL_Color{0,0,0};
+            SDL_Color out;
+            out.r = (f.r + left.r)%256;
+            out.g = (f.g + left.g)%256;
+            out.b = (f.b + left.b)%256;
+            setPixel(x,y+height,out.r,out.g,out.b);
+        }
+    }
+}
+
+void odfiltrujPNG_Typ2() {
+    int width = szerokosc/2, height = wysokosc/2;
+    for(int y=0;y<height;y++){
+        for(int x=0;x<width;x++){
+            SDL_Color f = filtrPNG[x][y];
+            SDL_Color up = (y>0)? getPixel(x,y+height-1): SDL_Color{0,0,0};
+            SDL_Color out;
+            out.r = (f.r + up.r)%256;
+            out.g = (f.g + up.g)%256;
+            out.b = (f.b + up.b)%256;
+            setPixel(x,y+height,out.r,out.g,out.b);
+        }
+    }
+}
+
+void odfiltrujPNG_Typ3() {
+    int width = szerokosc/2, height = wysokosc/2;
+    for(int y=0;y<height;y++){
+        for(int x=0;x<width;x++){
+            SDL_Color f = filtrPNG[x][y];
+            SDL_Color left = (x>0)? getPixel(x-1,y+height): SDL_Color{0,0,0};
+            SDL_Color up   = (y>0)? getPixel(x,y+height-1): SDL_Color{0,0,0};
+            SDL_Color out;
+            out.r = (f.r + ((left.r+up.r)/2))%256;
+            out.g = (f.g + ((left.g+up.g)/2))%256;
+            out.b = (f.b + ((left.b+up.b)/2))%256;
+            setPixel(x,y+height,out.r,out.g,out.b);
+        }
+    }
+}
+
+void odfiltrujPNG_Typ4() {
+    int width = szerokosc/2, height = wysokosc/2;
+    for(int y=0;y<height;y++){
+        for(int x=0;x<width;x++){
+            SDL_Color f = filtrPNG[x][y];
+            SDL_Color left=(x>0)? getPixel(x-1,y+height):SDL_Color{0,0,0};
+            SDL_Color up=(y>0)? getPixel(x,y+height-1):SDL_Color{0,0,0};
+            SDL_Color upLeft=(x>0 && y>0)? getPixel(x-1,y+height-1):SDL_Color{0,0,0};
+            SDL_Color out;
+            out.r=(f.r + paeth(left.r,up.r,upLeft.r))%256;
+            out.g=(f.g + paeth(left.g,up.g,upLeft.g))%256;
+            out.b=(f.b + paeth(left.b,up.b,upLeft.b))%256;
+            setPixel(x,y+height,out.r,out.g,out.b);
+        }
+    }
+}
+
+void filtrujYUV_Typ1() {
+    int w = szerokosc / 2, h = wysokosc / 2;
+    for (int y = 0; y < h; y++)
+        for (int x = 0; x < w; x++) {
+            YUV c = buforYUV[x][y];
+            YUV l = (x > 0) ? buforYUV[x-1][y] : YUV{0,0,0};
+            filtrYUV[x][y].y = c.y - l.y;
+            filtrYUV[x][y].u = c.u - l.u;
+            filtrYUV[x][y].v = c.v - l.v;
+        }
+}
+
+void filtrujYUV_Typ2() {
+    int w = szerokosc / 2, h = wysokosc / 2;
+    for (int y = 0; y < h; y++)
+        for (int x = 0; x < w; x++) {
+            YUV c = buforYUV[x][y];
+            YUV u = (y > 0) ? buforYUV[x][y-1] : YUV{0,0,0};
+            filtrYUV[x][y].y = c.y - u.y;
+            filtrYUV[x][y].u = c.u - u.u;
+            filtrYUV[x][y].v = c.v - u.v;
+        }
+}
+
+void filtrujYUV_Typ3() {
+    int w = szerokosc / 2, h = wysokosc / 2;
+    for (int y = 0; y < h; y++)
+        for (int x = 0; x < w; x++) {
+            YUV c = buforYUV[x][y];
+            YUV l = (x > 0) ? buforYUV[x-1][y] : YUV{0,0,0};
+            YUV u = (y > 0) ? buforYUV[x][y-1] : YUV{0,0,0};
+            filtrYUV[x][y].y = c.y - ((l.y + u.y) / 2.0f);
+            filtrYUV[x][y].u = c.u - ((l.u + u.u) / 2.0f);
+            filtrYUV[x][y].v = c.v - ((l.v + u.v) / 2.0f);
+        }
+}
+
+void filtrujYUV_Typ4() {
+    int w = szerokosc / 2, h = wysokosc / 2;
+    for (int y = 0; y < h; y++)
+        for (int x = 0; x < w; x++) {
+            YUV c  = buforYUV[x][y];
+            YUV l  = (x > 0) ? buforYUV[x-1][y] : YUV{0,0,0};
+            YUV u  = (y > 0) ? buforYUV[x][y-1] : YUV{0,0,0};
+            YUV ul = (x > 0 && y > 0) ? buforYUV[x-1][y-1] : YUV{0,0,0};
+            filtrYUV[x][y].y = c.y - paeth(l.y, u.y, ul.y);
+            filtrYUV[x][y].u = c.u - paeth(l.u, u.u, ul.u);
+            filtrYUV[x][y].v = c.v - paeth(l.v, u.v, ul.v);
+        }
+}
+
+// ======== ODFILTROWYWANIE ========
+
+void odfiltrujYUV_Typ1() {
+    int w = szerokosc / 2, h = wysokosc / 2;
+    for (int y = 0; y < h; y++)
+        for (int x = 0; x < w; x++) {
+            YUV f = filtrYUV[x][y];
+            YUV l = (x > 0) ? buforYUV[x-1][y] : YUV{0,0,0};
+
+            YUV nowy;
+            nowy.y = f.y + l.y;
+            nowy.u = f.u + l.u;
+            nowy.v = f.v + l.v;
+            buforYUV[x][y] = nowy;
+
+            setYUV(x + w, y, nowy.y, nowy.u, nowy.v);
+        }
+}
+
+void odfiltrujYUV_Typ2() {
+    int w = szerokosc / 2, h = wysokosc / 2;
+    for (int y = 0; y < h; y++)
+        for (int x = 0; x < w; x++) {
+            YUV f = filtrYUV[x][y];
+            YUV u = (y > 0) ? buforYUV[x][y-1] : YUV{0,0,0};
+
+            YUV nowy;
+            nowy.y = f.y + u.y;
+            nowy.u = f.u + u.u;
+            nowy.v = f.v + u.v;
+            buforYUV[x][y] = nowy;
+
+            setYUV(x + w, y, nowy.y, nowy.u, nowy.v);
+        }
+}
+
+void odfiltrujYUV_Typ3() {
+    int w = szerokosc / 2, h = wysokosc / 2;
+    for (int y = 0; y < h; y++)
+        for (int x = 0; x < w; x++) {
+            YUV f = filtrYUV[x][y];
+            YUV l = (x > 0) ? buforYUV[x-1][y] : YUV{0,0,0};
+            YUV u = (y > 0) ? buforYUV[x][y-1] : YUV{0,0,0};
+
+            YUV nowy;
+            nowy.y = f.y + ((l.y + u.y) / 2.0f);
+            nowy.u = f.u + ((l.u + u.u) / 2.0f);
+            nowy.v = f.v + ((l.v + u.v) / 2.0f);
+            buforYUV[x][y] = nowy;
+
+            setYUV(x + w, y, nowy.y, nowy.u, nowy.v);
+        }
+}
+
+void odfiltrujYUV_Typ4() {
+    int w = szerokosc / 2, h = wysokosc / 2;
+    for (int y = 0; y < h; y++)
+        for (int x = 0; x < w; x++) {
+            YUV f  = filtrYUV[x][y];
+            YUV l  = (x > 0) ? buforYUV[x-1][y] : YUV{0,0,0};
+            YUV u  = (y > 0) ? buforYUV[x][y-1] : YUV{0,0,0};
+            YUV ul = (x > 0 && y > 0) ? buforYUV[x-1][y-1] : YUV{0,0,0};
+
+            YUV nowy;
+            nowy.y = f.y + paeth(l.y, u.y, ul.y);
+            nowy.u = f.u + paeth(l.u, u.u, ul.u);
+            nowy.v = f.v + paeth(l.v, u.v, ul.v);
+            buforYUV[x][y] = nowy;
+
+            setYUV(x + w, y, nowy.y, nowy.u, nowy.v);
+        }
+}
+
+void filtrujRGB555_Typ1(){
+    int w=szerokosc/2, h=wysokosc/2;
+    for(int y=0;y<h;y++){
+        for(int x=0;x<w;x++){
+            Uint16 cur=getRGB555_(x,y);
+            Uint16 L = (x>0)? getRGB555_(x-1,y):0;
+
+            Uint8 cL =  cur &0xFF, cH = (cur>>8)&0xFF;
+            Uint8 lL =  L &0xFF, lH = (L  >>8)&0xFF;
+
+            filtrRGB555_lo[x][y] = (Uint8)((cL - lL + 256)%256);
+            filtrRGB555_hi[x][y] = (Uint8)((cH - lH + 256)%256);
+        }
+    }
+}
+
+void odfiltrujRGB555_Typ1(){
+    int w=szerokosc/2, h=wysokosc/2;
+    for(int y=0;y<h;y++){
+        for(int x=0;x<w;x++){
+            Uint8 fL=filtrRGB555_lo[x][y], fH=filtrRGB555_hi[x][y];
+
+            Uint16 L = (x>0)? getRGB555_(x-1,y+h):0;
+            Uint8 lL=L&0xFF, lH=(L>>8)&0xFF;
+
+            Uint8 nL=(Uint8)((fL + lL)%256);
+            Uint8 nH=(Uint8)((fH + lH)%256);
+
+            Uint16 out=(Uint16)nL | ((Uint16)nH<<8);
+            setRGB555(x,y+h,out);
+        }
+    }
+}
+
+void filtrujRGB555_Typ2(){
+    int w=szerokosc/2, h=wysokosc/2;
+    for(int y=0;y<h;y++){
+        for(int x=0;x<w;x++){
+            Uint16 cur=getRGB555_(x,y);
+            Uint16 U = (y>0)? getRGB555_(x,y-1):0;
+
+            Uint8 cL=cur&0xFF, cH=(cur>>8)&0xFF;
+            Uint8 uL=U  &0xFF, uH=(U  >>8)&0xFF;
+
+            filtrRGB555_lo[x][y]=(Uint8)((cL - uL + 256)%256);
+            filtrRGB555_hi[x][y]=(Uint8)((cH - uH + 256)%256);
+        }
+    }
+}
+
+void odfiltrujRGB555_Typ2(){
+    int w=szerokosc/2, h=wysokosc/2;
+    for(int y=0;y<h;y++){
+        for(int x=0;x<w;x++){
+            Uint8 fL=filtrRGB555_lo[x][y], fH=filtrRGB555_hi[x][y];
+
+            Uint16 U=(y>0)? getRGB555_(x,y+h-1):0;
+            Uint8 uL=U&0xFF, uH=(U>>8)&0xFF;
+
+            Uint8 nL=(Uint8)((fL + uL)%256);
+            Uint8 nH=(Uint8)((fH + uH)%256);
+
+            Uint16 out=(Uint16)nL | ((Uint16)nH<<8);
+            setRGB555(x,y+h,out);
+        }
+    }
+}
+
+void filtrujRGB555_Typ3(){
+    int w=szerokosc/2, h=wysokosc/2;
+    for(int y=0;y<h;y++){
+        for(int x=0;x<w;x++){
+            Uint16 cur=getRGB555_(x,y);
+            Uint16 L=(x>0)?getRGB555_(x-1,y):0;
+            Uint16 U=(y>0)?getRGB555_(x,y-1):0;
+
+            Uint8 cL=cur&0xFF, cH=(cur>>8)&0xFF;
+            Uint8 lL=L&0xFF,   lH=(L>>8)&0xFF;
+            Uint8 uL=U&0xFF,   uH=(U>>8)&0xFF;
+
+            Uint8 avgL=(Uint8)(((int)lL + (int)uL)/2);
+            Uint8 avgH=(Uint8)(((int)lH + (int)uH)/2);
+
+            filtrRGB555_lo[x][y]=(Uint8)((cL - avgL + 256)%256);
+            filtrRGB555_hi[x][y]=(Uint8)((cH - avgH + 256)%256);
+        }
+    }
+}
+
+void odfiltrujRGB555_Typ3(){
+    int w=szerokosc/2, h=wysokosc/2;
+    for(int y=0;y<h;y++){
+        for(int x=0;x<w;x++){
+            Uint8 fL=filtrRGB555_lo[x][y], fH=filtrRGB555_hi[x][y];
+
+            Uint16 L=(x>0)?getRGB555_(x-1,y+h):0;
+            Uint16 U=(y>0)?getRGB555_(x,y+h-1):0;
+
+            Uint8 lL=L&0xFF, lH=(L>>8)&0xFF;
+            Uint8 uL=U&0xFF, uH=(U>>8)&0xFF;
+
+            Uint8 avgL=(Uint8)(((int)lL + (int)uL)/2);
+            Uint8 avgH=(Uint8)(((int)lH + (int)uH)/2);
+
+            Uint8 nL=(Uint8)((fL + avgL)%256);
+            Uint8 nH=(Uint8)((fH + avgH)%256);
+
+            Uint16 out=(Uint16)nL | ((Uint16)nH<<8);
+            setRGB555(x,y+h,out);
+        }
+    }
+}
+
+void filtrujRGB555_Typ4(){
+    int w=szerokosc/2, h=wysokosc/2;
+    for(int y=0;y<h;y++){
+        for(int x=0;x<w;x++){
+            Uint16 cur=getRGB555_(x,y);
+            Uint16 L=(x>0)?getRGB555_(x-1,y):0;
+            Uint16 U=(y>0)?getRGB555_(x,y-1):0;
+            Uint16 UL=(x>0&&y>0)?getRGB555_(x-1,y-1):0;
+
+            Uint8 cL=cur&0xFF, cH=(cur>>8)&0xFF;
+            Uint8 lL=L&0xFF,   lH=(L>>8)&0xFF;
+            Uint8 uL=U&0xFF,   uH=(U>>8)&0xFF;
+            Uint8 ulL=UL&0xFF, ulH=(UL>>8)&0xFF;
+
+            filtrRGB555_lo[x][y]=(Uint8)((cL - paeth(lL,uL,ulL) + 256)%256);
+            filtrRGB555_hi[x][y]=(Uint8)((cH - paeth(lH,uH,ulH) + 256)%256);
+        }
+    }
+}
+
+void odfiltrujRGB555_Typ4(){
+    int w=szerokosc/2, h=wysokosc/2;
+    for(int y=0;y<h;y++){
+        for(int x=0;x<w;x++){
+            Uint8 fL=filtrRGB555_lo[x][y], fH=filtrRGB555_hi[x][y];
+
+            Uint16 L=(x>0)?getRGB555_(x-1,y+h):0;
+            Uint16 U=(y>0)?getRGB555_(x,y+h-1):0;
+            Uint16 UL=(x>0&&y>0)?getRGB555_(x-1,y+h-1):0;
+
+            Uint8 lL=L&0xFF, lH=(L>>8)&0xFF;
+            Uint8 uL=U&0xFF, uH=(U>>8)&0xFF;
+            Uint8 ulL=UL&0xFF, ulH=(UL>>8)&0xFF;
+
+            Uint8 nL=(Uint8)((fL + paeth(lL,uL,ulL))%256);
+            Uint8 nH=(Uint8)((fH + paeth(lH,uH,ulH))%256);
+
+            Uint16 out=(Uint16)nL | ((Uint16)nH<<8);
+            setRGB555(x,y+h,out);
+        }
+    }
+}
+void filtrujRGB565_Typ1(){
+    int w=szerokosc/2, h=wysokosc/2;
+    for(int y=0;y<h;y++){
+        for(int x=0;x<w;x++){
+            Uint16 cur=getRGB565_(x,y);
+            Uint16 L = (x>0)? getRGB565_(x-1,y):0;
+
+            Uint8 cL=cur&0xFF, cH=(cur>>8)&0xFF;
+            Uint8 lL=L  &0xFF, lH=(L  >>8)&0xFF;
+
+            filtrRGB565_lo[x][y]=(Uint8)((cL - lL + 256)%256);
+            filtrRGB565_hi[x][y]=(Uint8)((cH - lH + 256)%256);
+        }
+    }
+}
+
+void odfiltrujRGB565_Typ1(){
+    int w=szerokosc/2, h=wysokosc/2;
+    for(int y=0;y<h;y++){
+        for(int x=0;x<w;x++){
+            Uint8 fL=filtrRGB565_lo[x][y], fH=filtrRGB565_hi[x][y];
+
+            Uint16 L=(x>0)?getRGB565_(x-1+w,y+h):0;
+            Uint8 lL=L&0xFF, lH=(L>>8)&0xFF;
+
+            Uint8 nL=(Uint8)((fL + lL)%256);
+            Uint8 nH=(Uint8)((fH + lH)%256);
+
+            Uint16 out=(Uint16)nL | ((Uint16)nH<<8);
+            setRGB565(x+w,y+h,out);
+        }
+    }
+}
+
+void filtrujRGB565_Typ2(){
+    int w=szerokosc/2, h=wysokosc/2;
+    for(int y=0;y<h;y++){
+        for(int x=0;x<w;x++){
+            Uint16 cur=getRGB565_(x,y);
+            Uint16 U=(y>0)?getRGB565_(x,y-1):0;
+
+            Uint8 cL=cur&0xFF, cH=(cur>>8)&0xFF;
+            Uint8 uL=U  &0xFF, uH=(U  >>8)&0xFF;
+
+            filtrRGB565_lo[x][y]=(Uint8)((cL - uL + 256)%256);
+            filtrRGB565_hi[x][y]=(Uint8)((cH - uH + 256)%256);
+        }
+    }
+}
+
+void odfiltrujRGB565_Typ2(){
+    int w=szerokosc/2, h=wysokosc/2;
+    for(int y=0;y<h;y++){
+        for(int x=0;x<w;x++){
+            Uint8 fL=filtrRGB565_lo[x][y], fH=filtrRGB565_hi[x][y];
+
+            Uint16 U=(y>0)?getRGB565_(x+w,y+h-1):0;
+            Uint8 uL=U&0xFF, uH=(U>>8)&0xFF;
+
+            Uint8 nL=(Uint8)((fL + uL)%256);
+            Uint8 nH=(Uint8)((fH + uH)%256);
+
+            Uint16 out=(Uint16)nL | ((Uint16)nH<<8);
+            setRGB565(x+w,y+h,out);
+        }
+    }
+}
+
+void filtrujRGB565_Typ3(){
+    int w=szerokosc/2, h=wysokosc/2;
+    for(int y=0;y<h;y++){
+        for(int x=0;x<w;x++){
+            Uint16 cur=getRGB565_(x,y);
+            Uint16 L=(x>0)?getRGB565_(x-1,y):0;
+            Uint16 U=(y>0)?getRGB565_(x,y-1):0;
+
+            Uint8 cL=cur&0xFF, cH=(cur>>8)&0xFF;
+            Uint8 lL=L  &0xFF, lH=(L  >>8)&0xFF;
+            Uint8 uL=U  &0xFF, uH=(U  >>8)&0xFF;
+
+            Uint8 avgL=(Uint8)(((int)lL + (int)uL)/2);
+            Uint8 avgH=(Uint8)(((int)lH + (int)uH)/2);
+
+            filtrRGB565_lo[x][y]=(Uint8)((cL - avgL + 256)%256);
+            filtrRGB565_hi[x][y]=(Uint8)((cH - avgH + 256)%256);
+        }
+    }
+}
+
+void odfiltrujRGB565_Typ3(){
+    int w=szerokosc/2, h=wysokosc/2;
+    for(int y=0;y<h;y++){
+        for(int x=0;x<w;x++){
+            Uint8 fL=filtrRGB565_lo[x][y], fH=filtrRGB565_hi[x][y];
+
+            Uint16 L=(x>0)?getRGB565_(x-1+w,y+h):0;
+            Uint16 U=(y>0)?getRGB565_(x+w,y+h-1):0;
+
+            Uint8 lL=L&0xFF, lH=(L>>8)&0xFF;
+            Uint8 uL=U&0xFF, uH=(U>>8)&0xFF;
+
+            Uint8 avgL=(Uint8)(((int)lL + (int)uL)/2);
+            Uint8 avgH=(Uint8)(((int)lH + (int)uH)/2);
+
+            Uint8 nL=(Uint8)((fL + avgL)%256);
+            Uint8 nH=(Uint8)((fH + avgH)%256);
+
+            Uint16 out=(Uint16)nL | ((Uint16)nH<<8);
+            setRGB565(x+w,y+h,out);
+        }
+    }
+}
+
+
+void filtrujRGB565_Typ4(){
+    int w=szerokosc/2, h=wysokosc/2;
+    for(int y=0;y<h;y++){
+        for(int x=0;x<w;x++){
+            Uint16 cur=getRGB565_(x,y);
+            Uint16 L=(x>0)?getRGB565_(x-1,y):0;
+            Uint16 U=(y>0)?getRGB565_(x,y-1):0;
+            Uint16 UL=(x>0&&y>0)?getRGB565_(x-1,y-1):0;
+
+            Uint8 cL=cur&0xFF, cH=(cur>>8)&0xFF;
+            Uint8 lL=L&0xFF,   lH=(L>>8)&0xFF;
+            Uint8 uL=U&0xFF,   uH=(U>>8)&0xFF;
+            Uint8 ulL=UL&0xFF, ulH=(UL>>8)&0xFF;
+
+            filtrRGB565_lo[x][y]=(Uint8)((cL - paeth(lL,uL,ulL) + 256)%256);
+            filtrRGB565_hi[x][y]=(Uint8)((cH - paeth(lH,uH,ulH) + 256)%256);
+        }
+    }
+}
+
+void odfiltrujRGB565_Typ4(){
+    int w=szerokosc/2, h=wysokosc/2;
+    for(int y=0;y<h;y++){
+        for(int x=0;x<w;x++){
+            Uint8 fL=filtrRGB565_lo[x][y], fH=filtrRGB565_hi[x][y];
+
+            Uint16 L=(x>0)?getRGB565_(x-1+w,y+h):0;
+            Uint16 U=(y>0)?getRGB565_(x+w,y+h-1):0;
+            Uint16 UL=(x>0&&y>0)?getRGB565_(x-1+w,y+h-1):0;
+
+            Uint8 lL=L&0xFF, lH=(L>>8)&0xFF;
+            Uint8 uL=U&0xFF, uH=(U>>8)&0xFF;
+            Uint8 ulL=UL&0xFF, ulH=(UL>>8)&0xFF;
+
+            Uint8 nL=(Uint8)((fL + paeth(lL,uL,ulL))%256);
+            Uint8 nH=(Uint8)((fH + paeth(lH,uH,ulH))%256);
+
+            Uint16 out=(Uint16)nL | ((Uint16)nH<<8);
+            setRGB565(x+w,y+h,out);
+        }
+    }
+}
+void zapiszYUVDoBufora() {
+    int w = szerokosc / 2;
+    int h = wysokosc / 2;
+
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            buforYUV[x][y] = getYUV(x, y);
+        }
+    }
+}
+

@@ -1,6 +1,5 @@
 // zmienne globalne
 #include "SM2025-Zmienne.h"
-
 SDL_Window* window = NULL;
 SDL_Surface* screen = NULL;
 
@@ -22,4 +21,5 @@ extern SDL_Color paleta6s[64];
 
 float zaktualizowanaTablicaBayera4k[4][4];
 float zaktualizowanaTablicaBayera4s[4][4];
+
 
