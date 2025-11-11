@@ -85,10 +85,9 @@ void Funkcja7() {
 
 void Funkcja8() {
     zapiszYUVDoBufora();
-
-    filtrujYUV_Typ1();     odfiltrujYUV_Typ1();
-    filtrujRGB555_Typ1();  odfiltrujRGB555_Typ1();
-    filtrujRGB565_Typ1();  odfiltrujRGB565_Typ1();
+    filtrujYUV_Optymalnie(); odfiltrujYUV_Optymalnie();
+    filtrujRGB555_Optymalnie(); odfiltrujRGB555_Optymalnie();
+    filtrujRGB565_Optymalnie(); odfiltrujRGB565_Optymalnie();
     SDL_UpdateWindowSurface(window);
 }
 

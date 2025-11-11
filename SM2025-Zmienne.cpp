@@ -23,3 +23,7 @@ float zaktualizowanaTablicaBayera4k[4][4];
 float zaktualizowanaTablicaBayera4s[4][4];
 
 
+int filtrTypPNG[200];
+int filtrTypYUV[200];
+int filtrTypRGB555[200];
+int filtrTypRGB565[200];

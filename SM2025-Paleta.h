@@ -135,5 +135,12 @@ void filtrujRGB565_Typ2(); void odfiltrujRGB565_Typ2();
 void filtrujRGB565_Typ3(); void odfiltrujRGB565_Typ3();
 void filtrujRGB565_Typ4(); void odfiltrujRGB565_Typ4();
 void zapiszYUVDoBufora();
-
+void filtrujPNG_Optymalnie();
+void filtrujYUV_Optymalnie();
+void filtrujRGB555_Optymalnie();
+void filtrujRGB565_Optymalnie();
+void odfiltrujPNG_Optymalnie();
+void odfiltrujYUV_Optymalnie();
+void odfiltrujRGB555_Optymalnie();
+void odfiltrujRGB565_Optymalnie();
 #endif // SM2025_PALETA_H_INCLUDED

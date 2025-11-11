@@ -5731,7 +5731,7 @@
 	"SM2025-MedianCut.h"
 	"SM2025-Pliki.h"
 
-1762520023 source:c:\users\monik\desktop\sm\sm2025-funkcje.cpp
+1762802908 source:c:\users\monik\desktop\sm\sm2025-funkcje.cpp
 	"SM2025-Funkcje.h"
 	"SM2025-Zmienne.h"
 	"SM2025-Paleta.h"
@@ -6137,7 +6137,7 @@
 	"begin_code.h"
 	"close_code.h"
 
-1762522385 c:\users\monik\desktop\sm\sm2025-paleta.h
+1762802868 c:\users\monik\desktop\sm\sm2025-paleta.h
 	<stdio.h>
 	<stdlib.h>
 	<SDL2/SDL.h>
@@ -6145,7 +6145,7 @@
 	<cmath>
 	<algorithm>
 
-1762520023 c:\users\monik\desktop\sm\sm2025-zmienne.h
+1762802790 c:\users\monik\desktop\sm\sm2025-zmienne.h
 	<SDL2/SDL.h>
 
 1762505151 c:\users\monik\desktop\sm\sm2025-mediancut.h
@@ -6165,7 +6165,7 @@
 	"SM2025-Paleta.h"
 	<iostream>
 
-1762522140 source:c:\users\monik\desktop\sm\sm2025-paleta.cpp
+1762803346 source:c:\users\monik\desktop\sm\sm2025-paleta.cpp
 	"SM2025-Paleta.h"
 	"SM2025-Zmienne.h"
 	"SM2025-Funkcje.h"
@@ -6190,6 +6190,6 @@
 	<math.h>
 	<SDL2/SDL.h>
 
-1762520023 source:c:\users\monik\desktop\sm\sm2025-zmienne.cpp
+1762802400 source:c:\users\monik\desktop\sm\sm2025-zmienne.cpp
 	"SM2025-Zmienne.h"
 
