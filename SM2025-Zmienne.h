@@ -29,6 +29,11 @@ extern int obrazekIn[320*200];
 extern int obrazekInS[320*200];
 extern int indeksy[320][200];
 
+extern int filtrTypPNG[200];
+extern int filtrTypYUV[200];
+extern int filtrTypRGB555[200];
+extern int filtrTypRGB565[200];
+
 extern float zaktualizowanaTablicaBayera4k[4][4];
 extern float zaktualizowanaTablicaBayera4s[4][4];
 

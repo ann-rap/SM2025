@@ -1458,3 +1458,474 @@ void zapiszYUVDoBufora() {
     }
 }
 
+void filtrujYUV_Optymalnie() {
+    int w = szerokosc / 2, h = wysokosc / 2;
+
+    for (int y = 0; y < h; y++) {
+        double najlepszaSuma = 100000000.0;
+        int najlepszyTyp = 0;
+
+        // Testuj wszystkie typy 0–4
+        for (int typ = 0; typ <= 4; typ++) {
+            double suma = 0.0;
+
+            for (int x = 0; x < w; x++) {
+                YUV c  = buforYUV[x][y];
+                YUV l  = (x > 0) ? buforYUV[x-1][y] : YUV{0,0,0};
+                YUV u  = (y > 0) ? buforYUV[x][y-1] : YUV{0,0,0};
+                YUV ul = (x > 0 && y > 0) ? buforYUV[x-1][y-1] : YUV{0,0,0};
+
+                double predY, predU, predV;
+
+                switch (typ) {
+                    case 0: predY=predU=predV=0; break;
+                    case 1: predY=l.y; predU=l.u; predV=l.v; break;
+                    case 2: predY=u.y; predU=u.u; predV=u.v; break;
+                    case 3:
+                        predY=floor((l.y+u.y)/2.0);
+                        predU=floor((l.u+u.u)/2.0);
+                        predV=floor((l.v+u.v)/2.0);
+                        break;
+                    case 4:
+                        predY=paeth(l.y,u.y,ul.y);
+                        predU=paeth(l.u,u.u,ul.u);
+                        predV=paeth(l.v,u.v,ul.v);
+                        break;
+                }
+
+                double dy = c.y - predY;
+                double du = c.u - predU;
+                double dv = c.v - predV;
+
+                suma += fabs(dy) + fabs(du) + fabs(dv);
+            }
+
+            if (suma < najlepszaSuma) {
+                najlepszaSuma = suma;
+                najlepszyTyp = typ;
+                filtrTypYUV[y] = najlepszyTyp;
+            }
+        }
+
+        // Drugi przebieg — zapis najlepszego typu
+        for (int x = 0; x < w; x++) {
+            YUV c  = buforYUV[x][y];
+            YUV l  = (x > 0) ? buforYUV[x-1][y] : YUV{0,0,0};
+            YUV u  = (y > 0) ? buforYUV[x][y-1] : YUV{0,0,0};
+            YUV ul = (x > 0 && y > 0) ? buforYUV[x-1][y-1] : YUV{0,0,0};
+
+            double predY, predU, predV;
+
+            switch (najlepszyTyp) {
+                case 0: predY=predU=predV=0; break;
+                case 1: predY=l.y; predU=l.u; predV=l.v; break;
+                case 2: predY=u.y; predU=u.u; predV=u.v; break;
+                case 3:
+                    predY=floor((l.y+u.y)/2.0);
+                    predU=floor((l.u+u.u)/2.0);
+                    predV=floor((l.v+u.v)/2.0);
+                    break;
+                case 4:
+                    predY=paeth(l.y,u.y,ul.y);
+                    predU=paeth(l.u,u.u,ul.u);
+                    predV=paeth(l.v,u.v,ul.v);
+                    break;
+            }
+
+            filtrYUV[x][y].y = c.y - predY;
+            filtrYUV[x][y].u = c.u - predU;
+            filtrYUV[x][y].v = c.v - predV;
+        }
+    }
+}
+
+void filtrujPNG_Optymalnie() {
+    int width = szerokosc/2, height = wysokosc/2;
+
+    for (int y = 0; y < height; y++) {
+        long najlepszaSuma = LONG_MAX;
+        int najlepszyTyp = 0;
+
+        // Tablica pomocnicza na wyniki próbne
+        SDL_Color tymczasowy[320][1]; // tylko 1 linia na raz
+
+        // Przetestuj każdy typ filtra
+        for (int typ = 0; typ <= 4; typ++) {
+            long suma = 0;
+
+            for (int x = 0; x < width; x++) {
+                SDL_Color cur = getPixel(x,y);
+                SDL_Color left = (x>0)? getPixel(x-1,y): SDL_Color{0,0,0};
+                SDL_Color up   = (y>0)? getPixel(x,y-1): SDL_Color{0,0,0};
+                SDL_Color upLeft = (x>0 && y>0)? getPixel(x-1,y-1): SDL_Color{0,0,0};
+
+                int predR, predG, predB;
+                switch (typ) {
+                    case 0: predR=predG=predB=0; break;
+                    case 1: predR=left.r; predG=left.g; predB=left.b; break;
+                    case 2: predR=up.r; predG=up.g; predB=up.b; break;
+                    case 3:
+                        predR=floor((left.r+up.r)/2.0);
+                        predG=floor((left.g+up.g)/2.0);
+                        predB=floor((left.b+up.b)/2.0);
+                        break;
+                    case 4:
+                        predR=paeth(left.r,up.r,upLeft.r);
+                        predG=paeth(left.g,up.g,upLeft.g);
+                        predB=paeth(left.b,up.b,upLeft.b);
+                        break;
+                }
+
+                int dr = (cur.r - predR + 256) % 256;
+                int dg = (cur.g - predG + 256) % 256;
+                int db = (cur.b - predB + 256) % 256;
+
+                suma += abs(dr-128) + abs(dg-128) + abs(db-128);
+                tymczasowy[x][0] = {Uint8(dr), Uint8(dg), Uint8(db)};
+            }
+
+            if (suma < najlepszaSuma) {
+                najlepszaSuma = suma;
+                najlepszyTyp = typ;
+                filtrTypPNG[y] = najlepszyTyp;
+
+            }
+        }
+
+        // Drugi przebieg: zapisz wyniki najlepszego typu do filtrPNG
+        for (int x = 0; x < width; x++) {
+            SDL_Color cur = getPixel(x,y);
+            SDL_Color left = (x>0)? getPixel(x-1,y): SDL_Color{0,0,0};
+            SDL_Color up   = (y>0)? getPixel(x,y-1): SDL_Color{0,0,0};
+            SDL_Color upLeft = (x>0 && y>0)? getPixel(x-1,y-1): SDL_Color{0,0,0};
+
+            int predR, predG, predB;
+            switch (najlepszyTyp) {
+                case 0: predR=predG=predB=0; break;
+                case 1: predR=left.r; predG=left.g; predB=left.b; break;
+                case 2: predR=up.r; predG=up.g; predB=up.b; break;
+                case 3:
+                    predR=floor((left.r+up.r)/2.0);
+                    predG=floor((left.g+up.g)/2.0);
+                    predB=floor((left.b+up.b)/2.0);
+                    break;
+                case 4:
+                    predR=paeth(left.r,up.r,upLeft.r);
+                    predG=paeth(left.g,up.g,upLeft.g);
+                    predB=paeth(left.b,up.b,upLeft.b);
+                    break;
+            }
+
+            filtrPNG[x][y].r = (cur.r - predR + 256)%256;
+            filtrPNG[x][y].g = (cur.g - predG + 256)%256;
+            filtrPNG[x][y].b = (cur.b - predB + 256)%256;
+        }
+    }
+}
+
+void filtrujRGB555_Optymalnie() {
+    int w = szerokosc / 2, h = wysokosc / 2;
+
+    for (int y = 0; y < h; y++) {
+        double najlepszaSuma = 100000000.0;
+        int najlepszyTyp = 0;
+
+        for (int typ = 0; typ <= 4; typ++) {
+            double suma = 0.0;
+
+            for (int x = 0; x < w; x++) {
+                Uint16 cur = getRGB555_(x,y);
+                Uint16 L = (x>0)? getRGB555_(x-1,y):0;
+                Uint16 U = (y>0)? getRGB555_(x,y-1):0;
+                Uint16 UL= (x>0 && y>0)? getRGB555_(x-1,y-1):0;
+
+                Uint8 cL = cur & 0xFF, cH = (cur>>8)&0xFF;
+                Uint8 lL = L & 0xFF,   lH = (L>>8)&0xFF;
+                Uint8 uL = U & 0xFF,   uH = (U>>8)&0xFF;
+                Uint8 ulL= UL & 0xFF,  ulH= (UL>>8)&0xFF;
+
+                int pL=0, pH=0;
+                switch (typ) {
+                    case 0: pL=pH=0; break;
+                    case 1: pL=lL; pH=lH; break;
+                    case 2: pL=uL; pH=uH; break;
+                    case 3: pL=floor((lL+uL)/2.0); pH=floor((lH+uH)/2.0); break;
+                    case 4: pL=paeth(lL,uL,ulL); pH=paeth(lH,uH,ulH); break;
+                }
+
+                suma += fabs((double)((cL - pL + 256)%256 - 128)) +
+                        fabs((double)((cH - pH + 256)%256 - 128));
+            }
+
+            if (suma < najlepszaSuma) {
+                najlepszaSuma = suma;
+                najlepszyTyp = typ;
+                filtrTypRGB555[y] = najlepszyTyp;
+
+            }
+        }
+
+        // Drugi przebieg — zapisz wynik
+        for (int x = 0; x < w; x++) {
+            Uint16 cur = getRGB555_(x,y);
+            Uint16 L = (x>0)? getRGB555_(x-1,y):0;
+            Uint16 U = (y>0)? getRGB555_(x,y-1):0;
+            Uint16 UL= (x>0 && y>0)? getRGB555_(x-1,y-1):0;
+
+            Uint8 cL = cur & 0xFF, cH = (cur>>8)&0xFF;
+            Uint8 lL = L & 0xFF,   lH = (L>>8)&0xFF;
+            Uint8 uL = U & 0xFF,   uH = (U>>8)&0xFF;
+            Uint8 ulL= UL & 0xFF,  ulH= (UL>>8)&0xFF;
+
+            int pL=0, pH=0;
+            switch (najlepszyTyp) {
+                case 0: pL=pH=0; break;
+                case 1: pL=lL; pH=lH; break;
+                case 2: pL=uL; pH=uH; break;
+                case 3: pL=floor((lL+uL)/2.0); pH=floor((lH+uH)/2.0); break;
+                case 4: pL=paeth(lL,uL,ulL); pH=paeth(lH,uH,ulH); break;
+            }
+
+            filtrRGB555_lo[x][y] = (Uint8)((cL - pL + 256)%256);
+            filtrRGB555_hi[x][y] = (Uint8)((cH - pH + 256)%256);
+        }
+    }
+}
+
+void filtrujRGB565_Optymalnie() {
+    int w = szerokosc / 2, h = wysokosc / 2;
+
+    for (int y = 0; y < h; y++) {
+        double najlepszaSuma = 100000000.0;
+        int najlepszyTyp = 0;
+
+        for (int typ = 0; typ <= 4; typ++) {
+            double suma = 0.0;
+
+            for (int x = 0; x < w; x++) {
+                Uint16 cur = getRGB565_(x,y);
+                Uint16 L = (x>0)? getRGB565_(x-1,y):0;
+                Uint16 U = (y>0)? getRGB565_(x,y-1):0;
+                Uint16 UL= (x>0 && y>0)? getRGB565_(x-1,y-1):0;
+
+                Uint8 cL = cur & 0xFF, cH = (cur>>8)&0xFF;
+                Uint8 lL = L & 0xFF,   lH = (L>>8)&0xFF;
+                Uint8 uL = U & 0xFF,   uH = (U>>8)&0xFF;
+                Uint8 ulL= UL & 0xFF,  ulH= (UL>>8)&0xFF;
+
+                int pL=0, pH=0;
+                switch (typ) {
+                    case 0: pL=pH=0; break;
+                    case 1: pL=lL; pH=lH; break;
+                    case 2: pL=uL; pH=uH; break;
+                    case 3: pL=floor((lL+uL)/2.0); pH=floor((lH+uH)/2.0); break;
+                    case 4: pL=paeth(lL,uL,ulL); pH=paeth(lH,uH,ulH); break;
+                }
+
+                suma += fabs((double)((cL - pL + 256)%256 - 128)) +
+                        fabs((double)((cH - pH + 256)%256 - 128));
+            }
+
+            if (suma < najlepszaSuma) {
+                najlepszaSuma = suma;
+                najlepszyTyp = typ;
+                filtrTypRGB565[y] = najlepszyTyp;
+
+            }
+        }
+
+        // Zapis najlepszego typu
+        for (int x = 0; x < w; x++) {
+            Uint16 cur = getRGB565_(x,y);
+            Uint16 L = (x>0)? getRGB565_(x-1,y):0;
+            Uint16 U = (y>0)? getRGB565_(x,y-1):0;
+            Uint16 UL= (x>0 && y>0)? getRGB565_(x-1,y-1):0;
+
+            Uint8 cL = cur & 0xFF, cH = (cur>>8)&0xFF;
+            Uint8 lL = L & 0xFF,   lH = (L>>8)&0xFF;
+            Uint8 uL = U & 0xFF,   uH = (U>>8)&0xFF;
+            Uint8 ulL= UL & 0xFF,  ulH= (UL>>8)&0xFF;
+
+            int pL=0, pH=0;
+            switch (najlepszyTyp) {
+                case 0: pL=pH=0; break;
+                case 1: pL=lL; pH=lH; break;
+                case 2: pL=uL; pH=uH; break;
+                case 3: pL=floor((lL+uL)/2.0); pH=floor((lH+uH)/2.0); break;
+                case 4: pL=paeth(lL,uL,ulL); pH=paeth(lH,uH,ulH); break;
+            }
+
+            filtrRGB565_lo[x][y] = (Uint8)((cL - pL + 256)%256);
+            filtrRGB565_hi[x][y] = (Uint8)((cH - pH + 256)%256);
+        }
+    }
+}
+
+void odfiltrujPNG_Optymalnie() {
+    int width = szerokosc/2, height = wysokosc/2;
+
+    for (int y = 0; y < height; y++) {
+        int typ = filtrTypPNG[y]; // typ wybrany przy filtracji
+
+        for (int x = 0; x < width; x++) {
+            SDL_Color f = filtrPNG[x][y];
+            SDL_Color left = (x>0)? getPixel(x-1, y+height): SDL_Color{0,0,0};
+            SDL_Color up   = (y>0)? getPixel(x, y+height-1): SDL_Color{0,0,0};
+            SDL_Color upLeft = (x>0 && y>0)? getPixel(x-1, y+height-1): SDL_Color{0,0,0};
+
+            SDL_Color out;
+            switch (typ) {
+                case 0: // None
+                    out = f;
+                    break;
+                case 1: // Sub
+                    out.r = (f.r + left.r) % 256;
+                    out.g = (f.g + left.g) % 256;
+                    out.b = (f.b + left.b) % 256;
+                    break;
+                case 2: // Up
+                    out.r = (f.r + up.r) % 256;
+                    out.g = (f.g + up.g) % 256;
+                    out.b = (f.b + up.b) % 256;
+                    break;
+                case 3: // Average
+                    out.r = ((int)f.r + (int)floor((left.r + up.r) / 2.0)) % 256;
+                    out.g = ((int)f.g + (int)floor((left.g + up.g) / 2.0)) % 256;
+                    out.b = ((int)f.b + (int)floor((left.b + up.b) / 2.0)) % 256;
+                    break;
+                case 4: // Paeth
+                    out.r = (f.r + paeth(left.r, up.r, upLeft.r)) % 256;
+                    out.g = (f.g + paeth(left.g, up.g, upLeft.g)) % 256;
+                    out.b = (f.b + paeth(left.b, up.b, upLeft.b)) % 256;
+                    break;
+            }
+            setPixel(x, y+height, out.r, out.g, out.b);
+        }
+    }
+}
+void odfiltrujYUV_Optymalnie() {
+    int w = szerokosc/2, h = wysokosc/2;
+
+    for (int y = 0; y < h; y++) {
+        int typ = filtrTypYUV[y];
+        cout<<typ<<"\n";
+        for (int x = 0; x < w; x++) {
+            YUV f = filtrYUV[x][y];
+            YUV l  = (x>0)? buforYUV[x-1][y]: YUV{0,0,0};
+            YUV u  = (y>0)? buforYUV[x][y-1]: YUV{0,0,0};
+            YUV ul = (x>0 && y>0)? buforYUV[x-1][y-1]: YUV{0,0,0};
+
+            YUV nowy;
+            switch (typ) {
+                case 0:
+                    nowy = f;
+                    break;
+                case 1:
+                    nowy.y = f.y + l.y;
+                    nowy.u = f.u + l.u;
+                    nowy.v = f.v + l.v;
+                    break;
+                case 2:
+                    nowy.y = f.y + u.y;
+                    nowy.u = f.u + u.u;
+                    nowy.v = f.v + u.v;
+                    break;
+                case 3:
+                    nowy.y = f.y + floor((l.y + u.y)/2.0);
+                    nowy.u = f.u + floor((l.u + u.u)/2.0);
+                    nowy.v = f.v + floor((l.v + u.v)/2.0);
+                    break;
+                case 4:
+                    nowy.y = f.y + paeth(l.y,u.y,ul.y);
+                    nowy.u = f.u + paeth(l.u,u.u,ul.u);
+                    nowy.v = f.v + paeth(l.v,u.v,ul.v);
+                    break;
+            }
+
+            buforYUV[x][y] = nowy;
+            setYUV(x+w, y, nowy.y, nowy.u, nowy.v);
+        }
+    }
+}
+void odfiltrujRGB555_Optymalnie() {
+    int w = szerokosc/2, h = wysokosc/2;
+
+    for (int y = 0; y < h; y++) {
+        int typ = filtrTypRGB555[y];
+
+        for (int x = 0; x < w; x++) {
+            Uint8 fL = filtrRGB555_lo[x][y];
+            Uint8 fH = filtrRGB555_hi[x][y];
+
+            Uint16 L  = (x>0)? getRGB555_(x-1,y+h):0;
+            Uint16 U  = (y>0)? getRGB555_(x,y+h-1):0;
+            Uint16 UL = (x>0&&y>0)? getRGB555_(x-1,y+h-1):0;
+
+            Uint8 lL=L&0xFF, lH=(L>>8)&0xFF;
+            Uint8 uL=U&0xFF, uH=(U>>8)&0xFF;
+            Uint8 ulL=UL&0xFF, ulH=(UL>>8)&0xFF;
+
+            Uint8 nL,nH;
+            switch(typ) {
+                case 0:
+                    nL=fL; nH=fH; break;
+                case 1:
+                    nL=(fL + lL)%256; nH=(fH + lH)%256; break;
+                case 2:
+                    nL=(fL + uL)%256; nH=(fH + uH)%256; break;
+                case 3:
+                    nL=((int)fL + (int)floor((lL+uL)/2.0))%256;
+                    nH=((int)fH + (int)floor((lH+uH)/2.0))%256;
+                    break;
+                case 4:
+                    nL=(fL + paeth(lL,uL,ulL))%256;
+                    nH=(fH + paeth(lH,uH,ulH))%256;
+                    break;
+            }
+
+            Uint16 out=(Uint16)nL | ((Uint16)nH<<8);
+            setRGB555(x,y+h,out);
+        }
+    }
+}
+void odfiltrujRGB565_Optymalnie() {
+    int w = szerokosc/2, h = wysokosc/2;
+
+    for (int y = 0; y < h; y++) {
+        int typ = filtrTypRGB565[y];
+
+        for (int x = 0; x < w; x++) {
+            Uint8 fL = filtrRGB565_lo[x][y];
+            Uint8 fH = filtrRGB565_hi[x][y];
+
+            Uint16 L  = (x>0)? getRGB565_(x-1+w,y+h):0;
+            Uint16 U  = (y>0)? getRGB565_(x+w,y+h-1):0;
+            Uint16 UL = (x>0&&y>0)? getRGB565_(x-1+w,y+h-1):0;
+
+            Uint8 lL=L&0xFF, lH=(L>>8)&0xFF;
+            Uint8 uL=U&0xFF, uH=(U>>8)&0xFF;
+            Uint8 ulL=UL&0xFF, ulH=(UL>>8)&0xFF;
+
+            Uint8 nL,nH;
+            switch(typ) {
+                case 0:
+                    nL=fL; nH=fH; break;
+                case 1:
+                    nL=(fL + lL)%256; nH=(fH + lH)%256; break;
+                case 2:
+                    nL=(fL + uL)%256; nH=(fH + uH)%256; break;
+                case 3:
+                    nL=((int)fL + (int)floor((lL+uL)/2.0))%256;
+                    nH=((int)fH + (int)floor((lH+uH)/2.0))%256;
+                    break;
+                case 4:
+                    nL=(fL + paeth(lL,uL,ulL))%256;
+                    nH=(fH + paeth(lH,uH,ulH))%256;
+                    break;
+            }
+
+            Uint16 out=(Uint16)nL | ((Uint16)nH<<8);
+            setRGB565(x+w,y+h,out);
+        }
+    }
+}
