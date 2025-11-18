@@ -8,12 +8,36 @@
 // Globalne zmienne do przechowywania wyników
 WynikStruct wynik1, wynik2, wynik3, wynik4, wynik5;
 void Funkcja1() {
-    //P4
+    //P6
+    int nieskompresowane[] =
+{0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 7, 7, 8, 8, 8, 8, 8, 8, 2, 2, 1, 3};
+int dlugosc = 24;
+cout<<"wejscie:"<<endl;
+for (int c=0; c<dlugosc; c++)
+cout<<(int)nieskompresowane[c]<<", ";
+cout<<"\n";
+cout<<"skompresowane wyjscie (ByteRun):"<<endl;
+ByteRun* zk =  ByteRunKompresja(nieskompresowane, dlugosc);
+for (int c=0; c<zk->len; c++)
+cout<<zk->tab[c]<<", ";
+cout<<"\n";
+cout<<"Dekompresja wyjscie (ByteRun):"<<endl;
+ByteRun* dek = ByteRunDekompresja(zk->tab,zk->len);
+for(int i = 0; i<dek->len;i++){
+    cout<<dek->tab[i]<<", ";
+}
+
+
+SDL_UpdateWindowSurface (window);
+
+
+    /*
     subsample420_YUV(szerokosc/2, wysokosc/2);
     subsample420_YIQ(szerokosc/2, wysokosc/2);
     subsample420_YCbCr(szerokosc/2, wysokosc/2);
 
     SDL_UpdateWindowSurface(window);
+    */
 }
 //////RGB555-------
 void Funkcja2() {
