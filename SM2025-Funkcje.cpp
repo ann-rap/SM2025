@@ -9,23 +9,25 @@
 WynikStruct wynik1, wynik2, wynik3, wynik4, wynik5;
 void Funkcja1() {
     //P6
-    int nieskompresowane[] =
-{0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 7, 7, 8, 8, 8, 8, 8, 8, 2, 2, 1, 3};
-int dlugosc = 24;
-cout<<"wejscie:"<<endl;
-for (int c=0; c<dlugosc; c++)
-cout<<(int)nieskompresowane[c]<<", ";
-cout<<"\n";
-cout<<"skompresowane wyjscie (ByteRun):"<<endl;
-ByteRun* zk =  ByteRunKompresja(nieskompresowane, dlugosc);
-for (int c=0; c<zk->len; c++)
-cout<<zk->tab[c]<<", ";
-cout<<"\n";
-cout<<"Dekompresja wyjscie (ByteRun):"<<endl;
-ByteRun* dek = ByteRunDekompresja(zk->tab,zk->len);
-for(int i = 0; i<dek->len;i++){
-    cout<<dek->tab[i]<<", ";
+    SDL_Color* colors = new SDL_Color[wysokosc/2 * szerokosc/2];
+for(int y = 0; y < wysokosc/2; y++) {
+    for(int x = 0; x < szerokosc/2; x++) {
+        colors[y * (szerokosc/2) + x] = getPixel(x, y);
+    }
 }
+
+ByteRunColors komp = kompresjaObrazu(colors, (wysokosc/2) * (szerokosc/2));
+SDL_Color* dekomp = dekompresjObrazu(&komp);
+
+for(int y = 0; y < wysokosc/2; y++) {
+    for(int x = 0; x < szerokosc/2; x++) {
+        SDL_Color kolor = dekomp[y * (szerokosc/2) + x];
+        setPixel(x + hwidth, y, kolor.r, kolor.g, kolor.b);
+    }
+}
+
+
+
 
 
 SDL_UpdateWindowSurface (window);

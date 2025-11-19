@@ -58,7 +58,7 @@ ByteRun* ByteRunKompresja(int wejscie[], int dlugosc) {
 }
 
 ByteRun* ByteRunDekompresja(int wejscie[], int dlugosc) {
-    int* result_tab= new int[wysokosc*szerokosc];
+    int* result_tab= new int[hwidth*hheight];
     int i = 0;
     int tab_index=0;
 
@@ -85,4 +85,43 @@ ByteRun* ByteRunDekompresja(int wejscie[], int dlugosc) {
         }
     }
     return new ByteRun(result_tab,tab_index);
+}
+
+
+ByteRunColors kompresjaObrazu(SDL_Color colors[], int len){
+    int* rt = new int[len];
+    int* gt = new int[len];
+    int* bt = new int[len];
+    for(int i=0; i<len;i++){
+        rt[i] = colors[i].r;
+        gt[i] = colors[i].g;
+        bt[i] = colors[i].b;
+    }
+    ByteRun* r_br = ByteRunKompresja(rt,len);
+    ByteRun* g_br = ByteRunKompresja(gt,len);
+    ByteRun* b_br = ByteRunKompresja(bt,len);
+     cout<<r_br->len<<" "
+        <<g_br->len<<" "
+        <<b_br->len<<endl;
+    return ByteRunColors(r_br,g_br,b_br);
+}
+
+
+SDL_Color* dekompresjObrazu(ByteRunColors* colors){
+    SDL_Color* result= new SDL_Color[hwidth*hheight];
+    ByteRun* r_br = ByteRunDekompresja(colors->rtab->tab, colors->rtab->len);
+    ByteRun* g_br =  ByteRunDekompresja(colors->gtab->tab, colors->gtab->len);
+    ByteRun* b_br =  ByteRunDekompresja(colors->btab->tab, colors->btab->len);
+    cout<<r_br->len<<" "
+        <<g_br->len<<" "
+        <<b_br->len<<endl;
+    if(r_br->len == g_br->len && r_br->len == b_br->len){
+        for(int i= 0; i<r_br->len;i++){
+            result[i].r = r_br->tab[i];
+            result[i].g = g_br->tab[i];
+            result[i].b = b_br->tab[i];
+        }
+    }
+    return result;
+
 }
