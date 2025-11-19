@@ -12,36 +12,27 @@ WynikStruct wynik1, wynik2, wynik3, wynik4, wynik5;
 void Funkcja1() {//kompresja i dekompresja z tablicy
     //P6
     SDL_Color* colors = new SDL_Color[wysokosc/2 * szerokosc/2];
-for(int y = 0; y < wysokosc/2; y++) {
-    for(int x = 0; x < szerokosc/2; x++) {
-        colors[y * (szerokosc/2) + x] = getPixel(x, y);
+    for(int y = 0; y < wysokosc/2; y++) {
+        for(int x = 0; x < szerokosc/2; x++) {
+            colors[y * (szerokosc/2) + x] = getPixel(x, y);
+        }
     }
-}
 
-ByteRunColors komp = kompresjaObrazu(colors, (wysokosc/2) * (szerokosc/2));
-SDL_Color* dekomp = dekompresjObrazu(&komp);
+    ByteRunColors komp = kompresjaObrazu(colors, (wysokosc/2) * (szerokosc/2));
+    SDL_Color* dekomp = dekompresjObrazu(&komp);
 
-for(int y = 0; y < wysokosc/2; y++) {
-    for(int x = 0; x < szerokosc/2; x++) {
-        SDL_Color kolor = dekomp[y * (szerokosc/2) + x];
-        setPixel(x + hwidth, y, kolor.r, kolor.g, kolor.b);
+    for(int y = 0; y < wysokosc/2; y++) {
+        for(int x = 0; x < szerokosc/2; x++) {
+            SDL_Color kolor = dekomp[y * (szerokosc/2) + x];
+            setPixel(x + hwidth, y, kolor.r, kolor.g, kolor.b);
+        }
     }
-}
 
 
 
 
 
-SDL_UpdateWindowSurface (window);
-
-
-    /*
-    subsample420_YUV(szerokosc/2, wysokosc/2);
-    subsample420_YIQ(szerokosc/2, wysokosc/2);
-    subsample420_YCbCr(szerokosc/2, wysokosc/2);
-
-    SDL_UpdateWindowSurface(window);
-    */
+    SDL_UpdateWindowSurface (window);
 }
 ////////Kompresja
 void Funkcja2() {//zapis do pliku
@@ -331,6 +322,7 @@ void ladujBMP(char const* nazwa, int x, int y) {
     {
         printf("Unable to load bitmap: %s\n", SDL_GetError());
     }
+
     else
     {
         SDL_Color kolor;

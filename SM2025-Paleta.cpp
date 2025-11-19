@@ -239,7 +239,7 @@ void paletaNarzuconaSzary6BIT(WynikStruct* wynik)
 /*===== Set z strukturą =====*/
 
 void setPixelByStruct(int x, int y, Kolor kolor){
-    setPixel(x,y,kolor.r,kolor.g,kolor.b);
+    setPixel(x,y,kolor.c1,kolor.c2,kolor.c3);
 }
 
 
@@ -259,9 +259,9 @@ float normalize(float part){
 }
 Kolor normalizeAll(float r,float g,float b){
     Kolor kolor;
-    kolor.r = normalize(r);
-    kolor.g = normalize(g);
-    kolor.b = normalize(b);
+    kolor.c1 = normalize(r);
+    kolor.c2 = normalize(g);
+    kolor.c3 = normalize(b);
     return kolor;
 }
 

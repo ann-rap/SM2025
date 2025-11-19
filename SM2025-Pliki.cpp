@@ -6,18 +6,18 @@
 #include "SM2025-Pliki.h"
 #include <fstream>
 
-ByteRun* ByteRunKompresja(int wejscie[], int dlugosc) {
+ByteRun* ByteRunKompresja(float wejscie[], int dlugosc) {
     int i = 0;
-    int* result_tab = new int[dlugosc];
+    int16_t* result_tab = new int16_t[dlugosc];
     int ri=0;
 
-    // dopóki wszystkie dane nie zosta³y przetworzone (skompresowane)
+    // dopÃ³ki wszystkie dane nie zostaÂ³y przetworzone (skompresowane)
     while (i < dlugosc) {
 
-        // sekwencja powtarzaj¹cych siê przynajmniej dwóch bajtów
+        // sekwencja powtarzajÂ¹cych siÃª przynajmniej dwÃ³ch bajtÃ³w
         if ((i < dlugosc - 1) && (wejscie[i] == wejscie[i + 1])) {
 
-            // mierzymy d³ugoœæ sekwencji
+            // mierzymy dÂ³ugoÅ“Ã¦ sekwencji
             int j = 0;
             while ((i + j < dlugosc - 1) &&
                    (wejscie[i + j] == wejscie[i + 1 + j]) &&
@@ -25,13 +25,13 @@ ByteRun* ByteRunKompresja(int wejscie[], int dlugosc) {
                 j++;
             }
 
-            // wypisujemy spakowan¹ sekwencjê
+            // wypisujemy spakowanÂ¹ sekwencjÃª
             result_tab[ri++] =-j;
-            result_tab[ri++] = (int)wejscie[i + j];
+            result_tab[ri++] = (int16_t)wejscie[i + j];
 
             i += (j + 1);
 
-        // sekwencja ró¿nych bajtów
+        // sekwencja rÃ³Â¿nych bajtÃ³w
         } else {
             int j = 0;
 
@@ -41,15 +41,15 @@ ByteRun* ByteRunKompresja(int wejscie[], int dlugosc) {
                 j++;
             }
 
-            // dodajemy jeszcze koñcówkê
+            // dodajemy jeszcze koÃ±cÃ³wkÃª
             if ((i + j == dlugosc - 1) && (j < 128)) {
                 j++;
             }
 
-            // wypisujemy spakowan¹ sekwencjê
+            // wypisujemy spakowanÂ¹ sekwencjÃª
             // cout<<"("<<(j-1)<<"), ";
             for (int k = 0; k < j; k++) {
-                result_tab[ri++] =(int)wejscie[i + k];
+                result_tab[ri++] =(int16_t)wejscie[i + k];
             }
 
             i += j;
@@ -58,39 +58,35 @@ ByteRun* ByteRunKompresja(int wejscie[], int dlugosc) {
     return new ByteRun(result_tab,ri);
 }
 
-ByteRun* ByteRunDekompresja(int wejscie[], int dlugosc) {
-    int* result_tab= new int[hwidth*hheight];
+// Funkcja dekompresji pojedynczego kanaÅ‚u ByteRun
+ByteRun* ByteRunDekompresja(int16_t wejscie[], int dlugosc) {
+    int16_t* result_tab = new int16_t[hwidth * hheight];
     int i = 0;
-    int tab_index=0;
+    int tab_index = 0;
 
     while (i < dlugosc) {
-
         if (wejscie[i] < 0) {
-
             int j = -wejscie[i];
-            int value = wejscie[i + 1];
-
+            int16_t value = wejscie[i + 1];
 
             for (int k = 0; k <= j; k++) {
-                result_tab[tab_index] = value;
-                tab_index++;
+                result_tab[tab_index++] = value;
             }
-
             i += 2;
-        }
-
-        else {
+        } else {
             result_tab[tab_index++] = wejscie[i++];
         }
     }
-    return new ByteRun(result_tab,tab_index);
+
+    return new ByteRun(result_tab, tab_index);
 }
 
 
+
 ByteRunColors kompresjaObrazu(SDL_Color colors[], int len){
-    int* rt = new int[len];
-    int* gt = new int[len];
-    int* bt = new int[len];
+    float* rt = new float[len];
+    float* gt = new float[len];
+    float* bt = new float[len];
     for(int i=0; i<len;i++){
         rt[i] = colors[i].r;
         gt[i] = colors[i].g;
@@ -112,69 +108,61 @@ SDL_Color* dekompresjObrazu(ByteRunColors* colors){
 
     if(r_br->len == g_br->len && r_br->len == b_br->len){
         for(int i= 0; i<r_br->len;i++){
-            result[i].r = r_br->tab[i];
-            result[i].g = g_br->tab[i];
-            result[i].b = b_br->tab[i];
+            result[i].r = static_cast<Uint8>(r_br->tab[i]);
+            result[i].g = static_cast<Uint8>(g_br->tab[i]);
+            result[i].b = static_cast<Uint8>(b_br->tab[i]);
+
         }
     }
     return result;
 
 }
 
-void zapiszPojedynczyByteRun(fstream& out, ByteRun* br) {
-    if (br == nullptr) {
-        out << 0 << endl;
+void zapiszPojedynczyByteRun(std::ofstream& out, ByteRun* br) {
+    if (!br) {
+        int32_t zero = 0;
+        out.write(reinterpret_cast<char*>(&zero), sizeof(zero));
         return;
     }
-    out << br->len << endl;
-
-    for (int i = 0; i < br->len; i++) {
-        out << br->tab[i] << " ";
-    }
-    out << endl;
+    int32_t len = br->len;
+    out.write(reinterpret_cast<char*>(&len), sizeof(len));
+    out.write(reinterpret_cast<char*>(br->tab), len * sizeof(int16_t));
 }
-void zapisz(ByteRunColors* colors) {
-    fstream out;
-    out.open("obrazek.z21", ios::out | ios::trunc);
 
+void zapisz(ByteRunColors* colors) {
+    std::ofstream out("obrazek.z21", std::ios::binary | std::ios::trunc);
     if (out.good()) {
         zapiszPojedynczyByteRun(out, colors->rtab);
         zapiszPojedynczyByteRun(out, colors->gtab);
         zapiszPojedynczyByteRun(out, colors->btab);
         out.close();
-        cout << "Zapisano pomyslnie." << endl;
+        std::cout << "Zapisano pomyÅ›lnie." << std::endl;
     } else {
-        cerr << "Nie udalo sie otworzyc pliku do zapisu!" << endl;
+        std::cerr << "Nie udaÅ‚o siÄ™ otworzyÄ‡ pliku do zapisu!" << std::endl;
     }
 }
 
-void wczytajPojedynczyByteRun(fstream& in, ByteRun* br) {
-    int dlugosc;
-    in >> dlugosc;
-
-    br->len = dlugosc;
-    if (dlugosc > 0) {
-        br->tab = new int[dlugosc];
-        for (int i = 0; i < dlugosc; i++) {
-            in >> br->tab[i];
-        }
+void wczytajPojedynczyByteRun(std::ifstream& in, ByteRun* br) {
+    int32_t len = 0;
+    in.read(reinterpret_cast<char*>(&len), sizeof(len));
+    br->len = len;
+    if (len > 0) {
+        br->tab = new int16_t[len];
+        in.read(reinterpret_cast<char*>(br->tab), len * sizeof(int16_t));
     } else {
         br->tab = nullptr;
     }
 }
-void wczytaj(ByteRunColors* colors) {
-    fstream in;
-    in.open("obrazek.z21", ios::in);
 
+void wczytaj(ByteRunColors* colors) {
+    std::ifstream in("obrazek.z21", std::ios::binary);
     if (in.good()) {
         wczytajPojedynczyByteRun(in, colors->rtab);
         wczytajPojedynczyByteRun(in, colors->gtab);
         wczytajPojedynczyByteRun(in, colors->btab);
-
         in.close();
-        cout << "Wczytano pomyslnie." << endl;
+        std::cout << "Wczytano pomyÅ›lnie." << std::endl;
     } else {
-        cerr << "Nie udalo sie otworzyc pliku do odczytu!" << endl;
+        std::cerr << "Nie udaÅ‚o siÄ™ otworzyÄ‡ pliku do odczytu!" << std::endl;
     }
 }
-

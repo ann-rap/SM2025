@@ -6,10 +6,11 @@
 #include <math.h>
 #include <fstream>
 #include <SDL2/SDL.h>
-struct ByteRun{
-    int* tab;
+struct ByteRun {
+    int16_t* tab;
     int len;
-    ByteRun(int* t, int l) : tab(t), len(l) {}
+    ByteRun(int16_t* t, int l) : tab(t), len(l) {}
+    ~ByteRun() { delete[] tab; }
 };
 
 struct ByteRunColors{
