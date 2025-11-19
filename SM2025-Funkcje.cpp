@@ -4,38 +4,91 @@
 #include "SM2025-Paleta.h"
 #include "SM2025-MedianCut.h"
 #include "SM2025-Pliki.h"
+#include <iomanip>
+const int pixel_count = hheight*hwidth;
 
 // Globalne zmienne do przechowywania wyników
 WynikStruct wynik1, wynik2, wynik3, wynik4, wynik5;
-void Funkcja1() {
-    //P4
-    subsample420_YUV(szerokosc/2, wysokosc/2);
-    subsample420_YIQ(szerokosc/2, wysokosc/2);
-    subsample420_YCbCr(szerokosc/2, wysokosc/2);
-
-    SDL_UpdateWindowSurface(window);
-}
-//////RGB555-------
-void Funkcja2() {
-
-    for(int y = 0; y<wysokosc/2;y++){
-         for(int x = 0; x <szerokosc/2;x++){
-            Uint16 kolor = getRGB555_(x,y);
-            setRGB555(x,y,kolor);
-         }
-    }
-    SDL_UpdateWindowSurface(window);
-}
-////////RGB565------
-void Funkcja3() {
-
-    for(int y = 0; y<wysokosc/2;y++){
-         for(int x = 0; x <szerokosc/2;x++){
-            Uint16 nowyKolor = getRGB565_(x,y);
-            setRGB565(x,y,nowyKolor);
-         }
+void Funkcja1() {//kompresja i dekompresja z tablicy
+    //P6
+    SDL_Color* colors = new SDL_Color[wysokosc/2 * szerokosc/2];
+    for(int y = 0; y < wysokosc/2; y++) {
+        for(int x = 0; x < szerokosc/2; x++) {
+            colors[y * (szerokosc/2) + x] = getPixel(x, y);
+        }
     }
 
+    ByteRunColors komp = kompresjaObrazu(colors, (wysokosc/2) * (szerokosc/2));
+    SDL_Color* dekomp = dekompresjObrazu(&komp);
+
+    for(int y = 0; y < wysokosc/2; y++) {
+        for(int x = 0; x < szerokosc/2; x++) {
+            SDL_Color kolor = dekomp[y * (szerokosc/2) + x];
+            setPixel(x + hwidth, y, kolor.r, kolor.g, kolor.b);
+        }
+    }
+
+
+
+
+
+    SDL_UpdateWindowSurface (window);
+}
+////////Kompresja
+void Funkcja2() {//zapis do pliku
+    SDL_Color* colors = new SDL_Color[wysokosc/2 * szerokosc/2];
+    for(int y = 0; y < wysokosc/2; y++) {
+        for(int x = 0; x < szerokosc/2; x++) {
+            colors[y * (szerokosc/2) + x] = getPixel(x, y);
+        }
+    }
+
+    ByteRunColors komp = kompresjaObrazu(colors, (wysokosc/2) * (szerokosc/2));
+
+    double procR = 100 - ((double)komp.rtab->len / pixel_count * 100.0);
+    double procG = 100 - ((double)komp.gtab->len / pixel_count * 100.0);
+    double procB = 100 - ((double)komp.btab->len / pixel_count * 100.0);
+
+    long sumaSkompresowana = komp.rtab->len + komp.gtab->len + komp.btab->len;
+    long sumaOryginalna = pixel_count * 3;
+    double procTotal =100 - ((double)sumaSkompresowana / sumaOryginalna * 100.0);
+
+    cout << "--- Kompresja ByteRun ---" << endl;
+    cout << fixed << setprecision(2);
+    cout << "Kanal R: " << procR << "% (" << komp.rtab->len << " elementow)" << endl;
+    cout << "Kanal G: " << procG << "% (" << komp.gtab->len << " elementow)" << endl;
+    cout << "Kanal B: " << procB << "% (" << komp.btab->len << " elementow)" << endl;
+    cout << "SUMARYCZNIE: " << procTotal << "%" << endl<<endl;
+
+    zapisz(&komp);
+    SDL_Color* dekomp = dekompresjObrazu(&komp);
+
+    for(int y = 0; y < wysokosc/2; y++) {
+        for(int x = 0; x < szerokosc/2; x++) {
+            SDL_Color kolor = dekomp[y * (szerokosc/2) + x];
+            setPixel(x + hwidth, y, kolor.r, kolor.g, kolor.b);
+        }
+    }
+     SDL_UpdateWindowSurface(window);
+
+
+}
+/////////dekompresja
+void Funkcja3() {//odczyt z pliku
+    ByteRun* r = new ByteRun(nullptr, 0);
+    ByteRun* g = new ByteRun(nullptr, 0);
+    ByteRun* b = new ByteRun(nullptr, 0);
+
+    ByteRunColors* loaded = new ByteRunColors(r, g, b);
+    wczytaj(loaded);
+    SDL_Color* dekomp = dekompresjObrazu(loaded);
+
+    for(int y = 0; y < wysokosc/2; y++) {
+        for(int x = 0; x < szerokosc/2; x++) {
+            SDL_Color kolor = dekomp[y * (szerokosc/2) + x];
+            setPixel(x + hwidth, y+hheight, kolor.r, kolor.g, kolor.b);
+        }
+    }
     SDL_UpdateWindowSurface(window);
 }
 ////////HSL------
@@ -269,6 +322,7 @@ void ladujBMP(char const* nazwa, int x, int y) {
     {
         printf("Unable to load bitmap: %s\n", SDL_GetError());
     }
+
     else
     {
         SDL_Color kolor;
@@ -316,6 +370,5 @@ void rysujZStrukturyWynik(WynikStruct* wynik, int offsetX, int offsetY)
 
     SDL_UpdateWindowSurface(window);
 }
-
 
 

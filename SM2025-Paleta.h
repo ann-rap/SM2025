@@ -33,9 +33,9 @@ struct YCbCr{
 };
 
 struct Kolor{
-    float r;
-    float g;
-    float b;
+    float c1;
+    float c2;
+    float c3;
 };
 
 struct HSL{

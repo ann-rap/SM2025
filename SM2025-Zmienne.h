@@ -7,8 +7,10 @@
 #define szerokosc 640
 #define wysokosc 400
 
-#define tytul "SM2025 - Projekt - Zespol 21"
+#define hwidth 320
+#define hheight 200
 
+#define tytul "SM2025 - Projekt - Zespol 21"
 
 extern SDL_Window* window;
 extern SDL_Surface* screen;
