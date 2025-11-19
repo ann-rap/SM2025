@@ -6627,14 +6627,14 @@
 	<math.h>
 	<SDL2/SDL.h>
 
-1763512630 source:c:\users\dominik\documents\sm_2025\sm2025-funkcje.cpp
+1763515912 source:c:\users\dominik\documents\sm_2025\sm2025-funkcje.cpp
 	"SM2025-Funkcje.h"
 	"SM2025-Zmienne.h"
 	"SM2025-Paleta.h"
 	"SM2025-MedianCut.h"
 	"SM2025-Pliki.h"
 
-1763510759 c:\users\dominik\documents\sm_2025\sm2025-pliki.h
+1763514569 c:\users\dominik\documents\sm_2025\sm2025-pliki.h
 	<stdio.h>
 	<math.h>
 	<fstream>
@@ -6648,10 +6648,11 @@
 1763505261 source:c:\users\dominik\documents\sm_2025\sm2025-zmienne.cpp
 	"SM2025-Zmienne.h"
 
-1763512035 source:c:\users\dominik\documents\sm_2025\sm2025-pliki.cpp
+1763516744 source:c:\users\dominik\documents\sm_2025\sm2025-pliki.cpp
 	"SM2025-Funkcje.h"
 	"SM2025-Zmienne.h"
 	"SM2025-Paleta.h"
 	"SM2025-MedianCut.h"
 	"SM2025-Pliki.h"
+	<fstream>
 

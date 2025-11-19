@@ -22,4 +22,6 @@ ByteRun* ByteRunKompresja(int wejscie[], int dlugosc) ;
 ByteRun* ByteRunDekompresja(int wejscie[], int dlugosc) ;
 ByteRunColors kompresjaObrazu(SDL_Color colors[], int len);
 SDL_Color* dekompresjObrazu(ByteRunColors* colors);
+void zapisz(ByteRunColors* colors) ;
+void wczytaj(ByteRunColors* colors);
 #endif // SM2025_PLIKI_H_INCLUDED

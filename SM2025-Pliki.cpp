@@ -4,6 +4,7 @@
 #include "SM2025-Paleta.h"
 #include "SM2025-MedianCut.h"
 #include "SM2025-Pliki.h"
+#include <fstream>
 
 ByteRun* ByteRunKompresja(int wejscie[], int dlugosc) {
     int i = 0;
@@ -64,13 +65,12 @@ ByteRun* ByteRunDekompresja(int wejscie[], int dlugosc) {
 
     while (i < dlugosc) {
 
-        // przypadek RUN-LENGTH (nag³ówek ujemny)
         if (wejscie[i] < 0) {
 
-            int j = -wejscie[i];   // j = ile powtórzeñ minus jeden
-            int value = wejscie[i + 1]; // bajt powtarzany
+            int j = -wejscie[i];
+            int value = wejscie[i + 1];
 
-            // wypisujemy (j + 1) kopii value
+
             for (int k = 0; k <= j; k++) {
                 result_tab[tab_index] = value;
                 tab_index++;
@@ -79,7 +79,6 @@ ByteRun* ByteRunDekompresja(int wejscie[], int dlugosc) {
             i += 2;
         }
 
-        // przypadek RAW — pojedyncze niepowtarzaj¹ce siê bajty
         else {
             result_tab[tab_index++] = wejscie[i++];
         }
@@ -100,9 +99,7 @@ ByteRunColors kompresjaObrazu(SDL_Color colors[], int len){
     ByteRun* r_br = ByteRunKompresja(rt,len);
     ByteRun* g_br = ByteRunKompresja(gt,len);
     ByteRun* b_br = ByteRunKompresja(bt,len);
-     cout<<r_br->len<<" "
-        <<g_br->len<<" "
-        <<b_br->len<<endl;
+
     return ByteRunColors(r_br,g_br,b_br);
 }
 
@@ -112,9 +109,7 @@ SDL_Color* dekompresjObrazu(ByteRunColors* colors){
     ByteRun* r_br = ByteRunDekompresja(colors->rtab->tab, colors->rtab->len);
     ByteRun* g_br =  ByteRunDekompresja(colors->gtab->tab, colors->gtab->len);
     ByteRun* b_br =  ByteRunDekompresja(colors->btab->tab, colors->btab->len);
-    cout<<r_br->len<<" "
-        <<g_br->len<<" "
-        <<b_br->len<<endl;
+
     if(r_br->len == g_br->len && r_br->len == b_br->len){
         for(int i= 0; i<r_br->len;i++){
             result[i].r = r_br->tab[i];
@@ -125,3 +120,61 @@ SDL_Color* dekompresjObrazu(ByteRunColors* colors){
     return result;
 
 }
+
+void zapiszPojedynczyByteRun(fstream& out, ByteRun* br) {
+    if (br == nullptr) {
+        out << 0 << endl;
+        return;
+    }
+    out << br->len << endl;
+
+    for (int i = 0; i < br->len; i++) {
+        out << br->tab[i] << " ";
+    }
+    out << endl;
+}
+void zapisz(ByteRunColors* colors) {
+    fstream out;
+    out.open("obrazek.z21", ios::out | ios::trunc);
+
+    if (out.good()) {
+        zapiszPojedynczyByteRun(out, colors->rtab);
+        zapiszPojedynczyByteRun(out, colors->gtab);
+        zapiszPojedynczyByteRun(out, colors->btab);
+        out.close();
+        cout << "Zapisano pomyslnie." << endl;
+    } else {
+        cerr << "Nie udalo sie otworzyc pliku do zapisu!" << endl;
+    }
+}
+
+void wczytajPojedynczyByteRun(fstream& in, ByteRun* br) {
+    int dlugosc;
+    in >> dlugosc;
+
+    br->len = dlugosc;
+    if (dlugosc > 0) {
+        br->tab = new int[dlugosc];
+        for (int i = 0; i < dlugosc; i++) {
+            in >> br->tab[i];
+        }
+    } else {
+        br->tab = nullptr;
+    }
+}
+void wczytaj(ByteRunColors* colors) {
+    fstream in;
+    in.open("obrazek.z21", ios::in);
+
+    if (in.good()) {
+        wczytajPojedynczyByteRun(in, colors->rtab);
+        wczytajPojedynczyByteRun(in, colors->gtab);
+        wczytajPojedynczyByteRun(in, colors->btab);
+
+        in.close();
+        cout << "Wczytano pomyslnie." << endl;
+    } else {
+        cerr << "Nie udalo sie otworzyc pliku do odczytu!" << endl;
+    }
+}
+
