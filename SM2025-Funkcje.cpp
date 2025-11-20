@@ -11,20 +11,23 @@ const int pixel_count = hheight*hwidth;
 WynikStruct wynik1, wynik2, wynik3, wynik4, wynik5;
 void Funkcja1() {//kompresja i dekompresja z tablicy
     //P6
-    SDL_Color* colors = new SDL_Color[wysokosc/2 * szerokosc/2];
+    Kolor* colors = new Kolor[wysokosc/2 * szerokosc/2];
     for(int y = 0; y < wysokosc/2; y++) {
         for(int x = 0; x < szerokosc/2; x++) {
-            colors[y * (szerokosc/2) + x] = getPixel(x, y);
+            SDL_Color nk = getPixel(x, y);
+            colors[y * (szerokosc/2) + x].c1 = nk.r;
+            colors[y * (szerokosc/2) + x].c2 = nk.g;
+            colors[y * (szerokosc/2) + x].c3 = nk.b;
         }
     }
 
     ByteRunColors komp = kompresjaObrazu(colors, (wysokosc/2) * (szerokosc/2));
-    SDL_Color* dekomp = dekompresjObrazu(&komp);
+    Kolor* dekomp = dekompresjObrazu(&komp);
 
     for(int y = 0; y < wysokosc/2; y++) {
         for(int x = 0; x < szerokosc/2; x++) {
-            SDL_Color kolor = dekomp[y * (szerokosc/2) + x];
-            setPixel(x + hwidth, y, kolor.r, kolor.g, kolor.b);
+            Kolor kolor = dekomp[y * (szerokosc/2) + x];
+            setPixel(x + hwidth, y, kolor.c1, kolor.c2, kolor.c3);
         }
     }
 
@@ -36,10 +39,13 @@ void Funkcja1() {//kompresja i dekompresja z tablicy
 }
 ////////Kompresja
 void Funkcja2() {//zapis do pliku
-    SDL_Color* colors = new SDL_Color[wysokosc/2 * szerokosc/2];
+    Kolor* colors = new Kolor[wysokosc/2 * szerokosc/2];
     for(int y = 0; y < wysokosc/2; y++) {
         for(int x = 0; x < szerokosc/2; x++) {
-            colors[y * (szerokosc/2) + x] = getPixel(x, y);
+            SDL_Color nk = getPixel(x, y);
+            colors[y * (szerokosc/2) + x].c1 = nk.r;
+            colors[y * (szerokosc/2) + x].c2 = nk.g;
+            colors[y * (szerokosc/2) + x].c3 = nk.b;
         }
     }
 
@@ -61,12 +67,12 @@ void Funkcja2() {//zapis do pliku
     cout << "SUMARYCZNIE: " << procTotal << "%" << endl<<endl;
 
     zapisz(&komp);
-    SDL_Color* dekomp = dekompresjObrazu(&komp);
+    Kolor* dekomp = dekompresjObrazu(&komp);
 
     for(int y = 0; y < wysokosc/2; y++) {
         for(int x = 0; x < szerokosc/2; x++) {
-            SDL_Color kolor = dekomp[y * (szerokosc/2) + x];
-            setPixel(x + hwidth, y, kolor.r, kolor.g, kolor.b);
+            Kolor kolor = dekomp[y * (szerokosc/2) + x];
+            setPixel(x + hwidth, y, kolor.c1, kolor.c2, kolor.c3);
         }
     }
      SDL_UpdateWindowSurface(window);
@@ -81,21 +87,24 @@ void Funkcja3() {//odczyt z pliku
 
     ByteRunColors* loaded = new ByteRunColors(r, g, b);
     wczytaj(loaded);
-    SDL_Color* dekomp = dekompresjObrazu(loaded);
+    Kolor* dekomp = dekompresjObrazu(loaded);
 
     for(int y = 0; y < wysokosc/2; y++) {
         for(int x = 0; x < szerokosc/2; x++) {
-            SDL_Color kolor = dekomp[y * (szerokosc/2) + x];
-            setPixel(x + hwidth, y+hheight, kolor.r, kolor.g, kolor.b);
+            Kolor kolor = dekomp[y * (szerokosc/2) + x];
+            setPixel(x + hwidth, y+hheight, kolor.c1, kolor.c2, kolor.c3);
         }
     }
     SDL_UpdateWindowSurface(window);
 }
 ////////HSL------
 void Funkcja4() {
+
          for(int y = 0; y<wysokosc/2;y++){
                  for(int x = 0; x <szerokosc/2;x++){
                     HSL nowyKolor = getHSL(x,y);
+
+
                     setHSL(x,y,nowyKolor.h,nowyKolor.s,nowyKolor.l);
                  }
             }
