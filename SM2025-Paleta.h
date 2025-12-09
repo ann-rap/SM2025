@@ -33,9 +33,9 @@ struct YCbCr{
 };
 
 struct Kolor{
-    float r;
-    float g;
-    float b;
+    float c1;
+    float c2;
+    float c3;
 };
 
 struct HSL{
@@ -101,6 +101,46 @@ SDL_Color getRGB565D(int xx, int yy);
 Uint16 getRGB565D_(int xx, int yy);
 void zaktualizujTabliceBayera4();
 
+extern SDL_Color filtrPNG[320][200];
+extern YUV filtrYUV[320][200];
+
+extern Uint8 filtrRGB555_lo[320][200];
+extern Uint8 filtrRGB555_hi[320][200];
+
+extern YUV buforYUV[320][200];
 
 
+extern Uint8 filtrRGB565_lo[320][200];
+extern Uint8 filtrRGB565_hi[320][200];
+
+void filtrujPNG_Typ1();
+void filtrujPNG_Typ2();
+void filtrujPNG_Typ3();
+void filtrujPNG_Typ4();
+void odfiltrujPNG_Typ1();
+void odfiltrujPNG_Typ2();
+void odfiltrujPNG_Typ3();
+void odfiltrujPNG_Typ4();
+
+void filtrujYUV_Typ1(); void odfiltrujYUV_Typ1();
+void filtrujYUV_Typ2(); void odfiltrujYUV_Typ2();
+void filtrujYUV_Typ3(); void odfiltrujYUV_Typ3();
+void filtrujYUV_Typ4(); void odfiltrujYUV_Typ4();
+void filtrujRGB555_Typ1(); void odfiltrujRGB555_Typ1();
+void filtrujRGB555_Typ2(); void odfiltrujRGB555_Typ2();
+void filtrujRGB555_Typ3(); void odfiltrujRGB555_Typ3();
+void filtrujRGB555_Typ4(); void odfiltrujRGB555_Typ4();
+void filtrujRGB565_Typ1(); void odfiltrujRGB565_Typ1();
+void filtrujRGB565_Typ2(); void odfiltrujRGB565_Typ2();
+void filtrujRGB565_Typ3(); void odfiltrujRGB565_Typ3();
+void filtrujRGB565_Typ4(); void odfiltrujRGB565_Typ4();
+void zapiszYUVDoBufora();
+void filtrujPNG_Optymalnie();
+void filtrujYUV_Optymalnie();
+void filtrujRGB555_Optymalnie();
+void filtrujRGB565_Optymalnie();
+void odfiltrujPNG_Optymalnie();
+void odfiltrujYUV_Optymalnie();
+void odfiltrujRGB555_Optymalnie();
+void odfiltrujRGB565_Optymalnie();
 #endif // SM2025_PALETA_H_INCLUDED
