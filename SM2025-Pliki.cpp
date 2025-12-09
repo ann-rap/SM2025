@@ -83,14 +83,14 @@ ByteRun* ByteRunDekompresja(int16_t wejscie[], int dlugosc) {
 
 
 
-ByteRunColors kompresjaObrazu(SDL_Color colors[], int len){
+ByteRunColors kompresjaObrazu(Kolor colors[], int len){
     float* rt = new float[len];
     float* gt = new float[len];
     float* bt = new float[len];
     for(int i=0; i<len;i++){
-        rt[i] = colors[i].r;
-        gt[i] = colors[i].g;
-        bt[i] = colors[i].b;
+        rt[i] = colors[i].c1;
+        gt[i] = colors[i].c2;
+        bt[i] = colors[i].c3;
     }
     ByteRun* r_br = ByteRunKompresja(rt,len);
     ByteRun* g_br = ByteRunKompresja(gt,len);
@@ -99,18 +99,17 @@ ByteRunColors kompresjaObrazu(SDL_Color colors[], int len){
     return ByteRunColors(r_br,g_br,b_br);
 }
 
-
-SDL_Color* dekompresjObrazu(ByteRunColors* colors){
-    SDL_Color* result= new SDL_Color[hwidth*hheight];
+Kolor* dekompresjObrazu(ByteRunColors* colors){
+    Kolor* result= new Kolor[hwidth*hheight];
     ByteRun* r_br = ByteRunDekompresja(colors->rtab->tab, colors->rtab->len);
     ByteRun* g_br =  ByteRunDekompresja(colors->gtab->tab, colors->gtab->len);
     ByteRun* b_br =  ByteRunDekompresja(colors->btab->tab, colors->btab->len);
 
     if(r_br->len == g_br->len && r_br->len == b_br->len){
         for(int i= 0; i<r_br->len;i++){
-            result[i].r = static_cast<Uint8>(r_br->tab[i]);
-            result[i].g = static_cast<Uint8>(g_br->tab[i]);
-            result[i].b = static_cast<Uint8>(b_br->tab[i]);
+            result[i].c1 = static_cast<Uint8>(r_br->tab[i]);
+            result[i].c2 = static_cast<Uint8>(g_br->tab[i]);
+            result[i].c3= static_cast<Uint8>(b_br->tab[i]);
 
         }
     }

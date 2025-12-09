@@ -26,8 +26,8 @@ struct ByteRunColors{
 
 ByteRun* ByteRunKompresja(int wejscie[], int dlugosc) ;
 ByteRun* ByteRunDekompresja(int wejscie[], int dlugosc) ;
-ByteRunColors kompresjaObrazu(SDL_Color colors[], int len);
-SDL_Color* dekompresjObrazu(ByteRunColors* colors);
+ByteRunColors kompresjaObrazu(Kolor colors[], int len);
+Kolor* dekompresjObrazu(ByteRunColors* colors);
 void zapisz(ByteRunColors* colors) ;
 void wczytaj(ByteRunColors* colors);
 
