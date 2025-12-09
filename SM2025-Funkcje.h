@@ -25,6 +25,9 @@ void czyscEkran(Uint8 R, Uint8 G, Uint8 B);
 void ladujBMP(char const* nazwa, int x, int y);
 void rysujZStrukturyWynik(WynikStruct* wynik, int offsetX, int offsetY);
 
+void MenuRLE();
+void wypiszWiersz(int y);
+
 
 
 

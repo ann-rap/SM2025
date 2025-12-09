@@ -380,4 +380,217 @@ void rysujZStrukturyWynik(WynikStruct* wynik, int offsetX, int offsetY)
     SDL_UpdateWindowSurface(window);
 }
 
+//do testowania RLE wywolanie przez klawisz "r"
+void MenuRLE() {
+    cout << "\n========================================" << endl;
+    cout << "       KOMPRESJA RLE - MENU" << endl;
+    cout << "========================================" << endl;
+    cout << "1. RGB" << endl;
+    cout << "2. HSL" << endl;
+    cout << "3. YUV" << endl;
+    cout << "4. YIQ" << endl;
+    cout << "0. Anuluj" << endl;
+    cout << "Wybierz opcje: ";
+
+    int wybor;
+    cin >> wybor;
+
+    if (wybor == 0) {
+        cout << "Anulowano." << endl;
+        return;
+    }
+
+    Kolor* colors = new Kolor[pixel_count];
+
+
+    // === POJEDYNCZE TESTY ===
+    string format_name;
+    string filename;
+
+    // Przygotowanie danych w zależności od wyboru
+    switch(wybor) {
+        case 1: // RGB
+            format_name = "RGB";
+            for(int y = 0; y < wysokosc/2; y++) {
+                for(int x = 0; x < szerokosc/2; x++) {
+                    SDL_Color nk = getPixel(x, y);
+                    colors[y * (szerokosc/2) + x].c1 = nk.r;
+                    colors[y * (szerokosc/2) + x].c2 = nk.g;
+                    colors[y * (szerokosc/2) + x].c3 = nk.b;
+                }
+            }
+            break;
+
+        case 2: // HSL
+            format_name = "HSL";
+            for(int y = 0; y < wysokosc/2; y++) {
+                for(int x = 0; x < szerokosc/2; x++) {
+                    HSL hsl = getHSL(x, y);
+                    colors[y * (szerokosc/2) + x].c1 = (Uint8)((hsl.h / 360.0) * 255.0);
+                    colors[y * (szerokosc/2) + x].c2 = (Uint8)(hsl.s * 255.0);
+                    colors[y * (szerokosc/2) + x].c3 = (Uint8)(hsl.l * 255.0);
+                }
+            }
+            break;
+
+        case 3: // YUV
+            format_name = "YUV";
+            for(int y = 0; y < wysokosc/2; y++) {
+                for(int x = 0; x < szerokosc/2; x++) {
+                    YUV yuv = getYUV(x, y);
+                    colors[y * (szerokosc/2) + x].c1 = (Uint8)yuv.y;
+                    colors[y * (szerokosc/2) + x].c2 = (Uint8)(yuv.u + 128);
+                    colors[y * (szerokosc/2) + x].c3 = (Uint8)(yuv.v + 128);
+                }
+            }
+            break;
+
+        case 4: // YIQ
+            format_name = "YIQ";
+            for(int y = 0; y < wysokosc/2; y++) {
+                for(int x = 0; x < szerokosc/2; x++) {
+                    YIQ yiq = getYIQ(x, y);
+                    colors[y * (szerokosc/2) + x].c1 = (Uint8)yiq.y;
+                    colors[y * (szerokosc/2) + x].c2 = (Uint8)((yiq.i + 0.5957) * 255.0 / 1.1914);
+                    colors[y * (szerokosc/2) + x].c3 = (Uint8)((yiq.q + 0.5226) * 255.0 / 1.0452);
+                }
+            }
+            break;
+
+        default:
+            cout << "Nieprawidlowy wybor!" << endl;
+            delete[] colors;
+            return;
+    }
+
+    // Kompresja
+    cout << "\n--- Kompresja " << format_name << " ---" << endl;
+    RLEColors komp = kompresjaObrazu_RLE(colors, pixel_count);
+
+double procR = 100 - ((double)komp.rtab->len / pixel_count * 100.0);
+    double procG = 100 - ((double)komp.gtab->len / pixel_count * 100.0);
+    double procB = 100 - ((double)komp.btab->len / pixel_count * 100.0);
+
+    long sumaSkompresowana = komp.rtab->len + komp.gtab->len + komp.btab->len;
+    long sumaOryginalna = pixel_count * 3;
+    double procTotal =100 - ((double)sumaSkompresowana / sumaOryginalna * 100.0);
+    cout << fixed << setprecision(2);
+    cout << "Kanal 1: " << procR <<endl;
+    cout << "Kanal 2: " << procB<<endl;
+    cout << "Kanal 3: "<< procG <<endl;
+   // cout << "Rozmiar: " << suma << " (z " << (pixel_count * 3) << ")" << endl;
+    cout << "Kompresja: " << procTotal << "%" << endl;
+
+    // Zapis
+    cout << "\nPodaj nazwe pliku do zapisu (bez rozszerzenia): ";
+    cin >> filename;
+    filename += ".z21";
+    zapisz_RLE(&komp, filename.c_str());
+
+    // Dekompresja i wyświetlenie
+    cout << "Dekompresja i wyswietlanie..." << endl;
+    Kolor* dekomp = dekompresjaObrazu_RLE(&komp);
+
+    // Konwersja z powrotem do RGB i wyświetlenie
+    switch(wybor) {
+        case 1: // RGB - bezpośrednie
+            for(int y = 0; y < wysokosc/2; y++) {
+                for(int x = 0; x < szerokosc/2; x++) {
+                    Kolor k = dekomp[y * (szerokosc/2) + x];
+                    setPixel(x + hwidth, y, k.c1, k.c2, k.c3);
+                }
+            }
+            break;
+
+        case 2: // HSL -> RGB
+            for(int y = 0; y < wysokosc/2; y++) {
+                for(int x = 0; x < szerokosc/2; x++) {
+                    Kolor k = dekomp[y * (szerokosc/2) + x];
+                    float h = (k.c1 / 255.0) * 360.0;
+                    float s = k.c2 / 255.0;
+                    float l = k.c3 / 255.0;
+                    setHSL(x + hwidth, y, h, s, l);
+                }
+            }
+            break;
+
+        case 3: // YUV -> RGB
+            for(int y = 0; y < wysokosc/2; y++) {
+                for(int x = 0; x < szerokosc/2; x++) {
+                    Kolor k = dekomp[y * (szerokosc/2) + x];
+                    YUV yuv;
+                    yuv.y = k.c1;
+                    yuv.u = k.c2 - 128;
+                    yuv.v = k.c3 - 128;
+                    setYUV(x + hwidth, y, yuv.y, yuv.u, yuv.v);
+                }
+            }
+            break;
+
+        case 4: // YIQ -> RGB
+            for(int y = 0; y < wysokosc/2; y++) {
+                for(int x = 0; x < szerokosc/2; x++) {
+                    Kolor k = dekomp[y * (szerokosc/2) + x];
+                    YIQ yiq;
+                    yiq.y = k.c1;
+                    yiq.i = (k.c2 / 255.0) * 1.1914 - 0.5957;
+                    yiq.q = (k.c3 / 255.0) * 1.0452 - 0.5226;
+                    setYIQ(x + hwidth, y, yiq.y, yiq.i, yiq.q);
+                }
+            }
+            break;
+    }
+
+    delete[] colors;
+    delete[] dekomp;
+
+    SDL_UpdateWindowSurface(window);
+    cout << "Gotowe!\n" << endl;
+}
+
+//Sprawdzenie wartosci jednego wiersza obrazku do zadania z RLE, wywołanie przez "w"
+void wypiszWiersz(int y) {
+    if (y < 0 || y >= hheight) {
+        cout << "Nieprawidlowy numer wiersza! (0-" << (hheight-1) << ")" << endl;
+        return;
+    }
+
+    cout << "\n=== WIERSZ " << y << " ===" << endl;
+
+    // Wiersz R (czerwony)
+    cout << "R: ";
+    for(int x = 0; x < hwidth; x++) {
+        SDL_Color pixel = getPixel(x, y);
+        cout << (int)pixel.r << " ";
+    }
+    cout << endl;
+
+    // Wiersz G (zielony)
+    cout << "G: ";
+    for(int x = 0; x < hwidth; x++) {
+        SDL_Color pixel = getPixel(x, y);
+        cout << (int)pixel.g << " ";
+    }
+    cout << endl;
+
+    // Wiersz B (niebieski)
+    cout << "B: ";
+    for(int x = 0; x < hwidth; x++) {
+        SDL_Color pixel = getPixel(x, y);
+        cout << (int)pixel.b << " ";
+    }
+    cout << endl << endl;
+
+    int* test = new int[hwidth];
+for(int x = 0; x < hwidth; x++) {
+    SDL_Color pixel = getPixel(x, y);
+    test[x] = pixel.r;
+}
+RLE* komp = RLEKompresja(test, hwidth);
+cout << "Oryginalny rozmiar: " << hwidth << endl;
+cout << "Po kompresji RLE: " << komp->len << endl;
+cout << "Zmiana: " << (komp->len - hwidth) << endl;
+delete komp;
+delete[] test;
+}
 

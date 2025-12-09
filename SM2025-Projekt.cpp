@@ -87,6 +87,14 @@ int main(int argc, char* argv[]) {
                     ladujBMP("obrazek9.bmp", 0, 0);
                 if (event.key.keysym.sym == SDLK_b)
                     czyscEkran(0, 0, 0);
+                if (event.key.keysym.sym == SDLK_r)
+                    MenuRLE();
+                if (event.key.keysym.sym == SDLK_w) {
+                    cout << "Podaj numer wiersza (0-" << (hheight-1) << "): ";
+                    int wiersz;
+                    cin >> wiersz;
+                    wypiszWiersz(wiersz);
+                    }
                 else
                     break;
                }
