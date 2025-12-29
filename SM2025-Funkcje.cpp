@@ -11,41 +11,31 @@ const int pixel_count = hheight*hwidth;
 WynikStruct wynik1, wynik2, wynik3, wynik4, wynik5;
 void Funkcja1() {//kompresja i dekompresja z tablicy
     //P6
-    Kolor* colors = new Kolor[wysokosc/2 * szerokosc/2];
+    SDL_Color* colors = new SDL_Color[wysokosc/2 * szerokosc/2];
     for(int y = 0; y < wysokosc/2; y++) {
         for(int x = 0; x < szerokosc/2; x++) {
-            SDL_Color nk = getPixel(x, y);
-            colors[y * (szerokosc/2) + x].c1 = nk.r;
-            colors[y * (szerokosc/2) + x].c2 = nk.g;
-            colors[y * (szerokosc/2) + x].c3 = nk.b;
+            colors[y * (szerokosc/2) + x] = getPixel(x, y);
         }
     }
 
     ByteRunColors komp = kompresjaObrazu(colors, (wysokosc/2) * (szerokosc/2));
-    Kolor* dekomp = dekompresjObrazu(&komp);
+    SDL_Color* dekomp = dekompresjObrazu(&komp);
 
     for(int y = 0; y < wysokosc/2; y++) {
         for(int x = 0; x < szerokosc/2; x++) {
-            Kolor kolor = dekomp[y * (szerokosc/2) + x];
-            setPixel(x + hwidth, y, kolor.c1, kolor.c2, kolor.c3);
+            SDL_Color kolor = dekomp[y * (szerokosc/2) + x];
+            setPixel(x + hwidth, y, kolor.r, kolor.g, kolor.b);
         }
     }
-
-
-
-
 
     SDL_UpdateWindowSurface (window);
 }
 ////////Kompresja
 void Funkcja2() {//zapis do pliku
-    Kolor* colors = new Kolor[wysokosc/2 * szerokosc/2];
+    SDL_Color* colors = new SDL_Color[wysokosc/2 * szerokosc/2];
     for(int y = 0; y < wysokosc/2; y++) {
         for(int x = 0; x < szerokosc/2; x++) {
-            SDL_Color nk = getPixel(x, y);
-            colors[y * (szerokosc/2) + x].c1 = nk.r;
-            colors[y * (szerokosc/2) + x].c2 = nk.g;
-            colors[y * (szerokosc/2) + x].c3 = nk.b;
+            colors[y * (szerokosc/2) + x] = getPixel(x, y);
         }
     }
 
@@ -67,12 +57,12 @@ void Funkcja2() {//zapis do pliku
     cout << "SUMARYCZNIE: " << procTotal << "%" << endl<<endl;
 
     zapisz(&komp);
-    Kolor* dekomp = dekompresjObrazu(&komp);
+    SDL_Color* dekomp = dekompresjObrazu(&komp);
 
     for(int y = 0; y < wysokosc/2; y++) {
         for(int x = 0; x < szerokosc/2; x++) {
-            Kolor kolor = dekomp[y * (szerokosc/2) + x];
-            setPixel(x + hwidth, y, kolor.c1, kolor.c2, kolor.c3);
+            SDL_Color kolor = dekomp[y * (szerokosc/2) + x];
+            setPixel(x + hwidth, y, kolor.r, kolor.g, kolor.b);
         }
     }
      SDL_UpdateWindowSurface(window);
@@ -87,24 +77,21 @@ void Funkcja3() {//odczyt z pliku
 
     ByteRunColors* loaded = new ByteRunColors(r, g, b);
     wczytaj(loaded);
-    Kolor* dekomp = dekompresjObrazu(loaded);
+    SDL_Color* dekomp = dekompresjObrazu(loaded);
 
     for(int y = 0; y < wysokosc/2; y++) {
         for(int x = 0; x < szerokosc/2; x++) {
-            Kolor kolor = dekomp[y * (szerokosc/2) + x];
-            setPixel(x + hwidth, y+hheight, kolor.c1, kolor.c2, kolor.c3);
+            SDL_Color kolor = dekomp[y * (szerokosc/2) + x];
+            setPixel(x + hwidth, y+hheight, kolor.r, kolor.g, kolor.b);
         }
     }
     SDL_UpdateWindowSurface(window);
 }
 ////////HSL------
 void Funkcja4() {
-
          for(int y = 0; y<wysokosc/2;y++){
                  for(int x = 0; x <szerokosc/2;x++){
                     HSL nowyKolor = getHSL(x,y);
-
-
                     setHSL(x,y,nowyKolor.h,nowyKolor.s,nowyKolor.l);
                  }
             }
@@ -113,11 +100,81 @@ void Funkcja4() {
 }
 
 void Funkcja5() {
-    //P4
-    subsample420_HSL(szerokosc/2, wysokosc/2);
+    int w = szerokosc/2;
+    int h = wysokosc/2;
+    int len = w * h;
+
+    SDL_Color* colors = new SDL_Color[len];
+
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            colors[y * w + x] = getPixel(x, y);
+        }
+    }
+
+    Kolor* kolory = new Kolor[len];
+    for (int i = 0; i < len; ++i) {
+        kolory[i].c1 = colors[i].r;
+        kolory[i].c2 = colors[i].g;
+        kolory[i].c3 = colors[i].b;
+    }
+
+    LZWColors lzwColors = kompresjaObrazu_LZW(kolory, len);
+
+    const char* filename = "dane_lzw.bin";
+    zapisz_LZW(&lzwColors, filename);
+
+    std::cout << "\nStopien kompresji: ";
+    double oryg = len * 3.0;
+    double komp = (lzwColors.rtab->len +
+                   lzwColors.gtab->len +
+                   lzwColors.btab->len) * 2.0;
+    std::cout << (oryg / komp) << "\n";
+
+    delete[] lzwColors.rtab->tab;
+    delete   lzwColors.rtab;
+    delete[] lzwColors.gtab->tab;
+    delete   lzwColors.gtab;
+    delete[] lzwColors.btab->tab;
+    delete   lzwColors.btab;
+
+    LZWColors lzwFromFile{};
+    lzwFromFile.rtab = nullptr;
+    lzwFromFile.gtab = nullptr;
+    lzwFromFile.btab = nullptr;
+
+    wczytaj_LZW(&lzwFromFile, filename);
+
+    Kolor* zdekompresowane = dekompresjaObrazu_LZW(&lzwFromFile);
+
+    bool ok = true;
+    for (int i = 0; ok && i < len; ++i) {
+        if (zdekompresowane[i].c1 != kolory[i].c1 ||
+            zdekompresowane[i].c2 != kolory[i].c2 ||
+            zdekompresowane[i].c3 != kolory[i].c3) {
+            ok = false;
+        }
+    }
+
+    std::cout << "\nCzy dekompresja po ZAPISIE DO PLIKU i ODCZYCIE jest poprawna? "
+              << (ok ? "TAK" : "NIE") << "\n";
+
+    delete[] colors;
+    delete[] kolory;
+    delete[] zdekompresowane;
+
+    delete[] lzwFromFile.rtab->tab;
+    delete   lzwFromFile.rtab;
+    delete[] lzwFromFile.gtab->tab;
+    delete   lzwFromFile.gtab;
+    delete[] lzwFromFile.btab->tab;
+    delete   lzwFromFile.btab;
 
     SDL_UpdateWindowSurface(window);
 }
+
+
+
 void Funkcja6() {
    zaktualizujTabliceBayera4();  // Inicjalizacja tablicy Bayera
 
