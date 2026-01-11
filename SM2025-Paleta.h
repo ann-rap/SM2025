@@ -1,4 +1,4 @@
-// funkcje do redukcji kolorów i tworzenia palet
+// funkcje do redukcji kolorï¿½w i tworzenia palet
 #ifndef SM2025_PALETA_H_INCLUDED
 #define SM2025_PALETA_H_INCLUDED
 #include <stdio.h>
@@ -7,13 +7,19 @@
 #include <iostream>
 #include <cmath>
 #include <algorithm>
+#include <iomanip>
 
 using namespace std;
-
+const int rozmiarBloku=16;
 // Struktura do zwracania wynikow
 struct WynikStruct {
-    SDL_Color paleta[64];      // Paleta kolorów
-    Uint8 indeksy[64000];      //macierz zawierajaca indeksy z palety kolorów
+    SDL_Color paleta[64];      // Paleta kolorï¿½w
+    Uint8 indeksy[64000];      //macierz zawierajaca indeksy z palety kolorï¿½w
+};
+
+struct macierz {
+    float dct[rozmiarBloku][rozmiarBloku];
+    Uint8 dane[rozmiarBloku][rozmiarBloku];
 };
 
 struct YUV{;
@@ -43,6 +49,16 @@ struct HSL{
     float s;
     float l;
 };
+
+void wyswietlDane(macierz blok);
+void wyswietlDCT(macierz blok);
+macierz dct(Uint8 wartosci[rozmiarBloku][rozmiarBloku]);
+macierz idct(float DCT[rozmiarBloku][rozmiarBloku]);
+
+// Funkcje do kompresji DCT z zygzakowaniem
+void zigzagCollect(float dct[rozmiarBloku][rozmiarBloku], float output[256]);
+void zigzagReconstruct(float zigzag[256], float dct[rozmiarBloku][rozmiarBloku]);
+void kompresjaDCT();
 
 void subsample420_YUV(int width, int height);
 void subsample420_YIQ(int width, int height);

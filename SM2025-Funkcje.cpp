@@ -176,29 +176,62 @@ void Funkcja5() {
 
 
 void Funkcja6() {
-   zaktualizujTabliceBayera4();  // Inicjalizacja tablicy Bayera
-
-    for(int y = 0; y < wysokosc/2; y++){
-        for(int x = 0; x < szerokosc/2; x++){
-            Uint16 kolor = getRGB555D_(x, y);
-            setRGB555(x, y + wysokosc/2, kolor);
+   float kolor = 0;
+   for(int y = 0; y<rozmiarBloku; y++){
+        for(int x = 0; x < rozmiarBloku ; x++){
+            setPixel(x+rozmiarBloku, y + rozmiarBloku, kolor, kolor, kolor);
+            kolor += 256.0/(rozmiarBloku*rozmiarBloku);
         }
-    }
-    SDL_UpdateWindowSurface(window);
+   }
+   for(int y = 1; y<rozmiarBloku; y+=2){
+        for(int x = 1; x < rozmiarBloku; x+=2){
+            setPixel(x+3*rozmiarBloku, y+rozmiarBloku, 255,255,255);
+            setPixel(x+3*rozmiarBloku-1, y+rozmiarBloku-1, 128,128,128);
+            setPixel(x+3*rozmiarBloku, y+rozmiarBloku-1, 0,0,0);
+            setPixel(x+3*rozmiarBloku-1, y+rozmiarBloku, 0,0,0);
+        }
+   }
+   SDL_UpdateWindowSurface(window);
 }
 
 void Funkcja7() {
- zaktualizujTabliceBayera4();  // Inicjalizacja tablicy Bayera
-
-    for(int y = 0; y < wysokosc/2; y++){
-        for(int x = 0; x < szerokosc/2; x++){
-            Uint16 nowyKolor = getRGB565D_(x, y);
-            setRGB565(x + szerokosc/2, y + wysokosc/2, nowyKolor);
+    macierz blokDCT;
+    macierz blokDane;
+    macierz noweDane;
+    //Pierwszy blok
+    cout<<"Pierwszy blok"<<endl;
+    for(int y = 0; y < rozmiarBloku; y++){
+        for(int x = 0; x < rozmiarBloku; x++){
+            blokDane.dane[x][y] = getPixel(x+rozmiarBloku, y+rozmiarBloku).r;
+            blokDane.dct[x][y] = 0;
         }
     }
-    SDL_UpdateWindowSurface(window);
-
-
+    wyswietlDane(blokDane);
+    cout<<endl;
+    blokDCT = dct(blokDane.dane);
+    blokDCT.dct[2][2]=200;
+    wyswietlDCT(blokDCT);
+    cout<<endl;
+    noweDane = idct(blokDane.dct);
+    wyswietlDCT(noweDane);
+    cout<<endl;
+    //Drugi blok
+    cout<<"Drugi blok"<<endl;
+    for(int y = 0; y < rozmiarBloku; y++){
+        for(int x = 0; x < rozmiarBloku; x++){
+            blokDane.dane[x][y] = getPixel(x+3*rozmiarBloku, y+rozmiarBloku).r;
+            blokDane.dct[x][y]=0;
+        }
+    }
+    wyswietlDane(blokDane);
+    cout<<endl;
+    blokDCT = dct(blokDane.dane);
+    blokDCT.dct[2][2]=200;
+    wyswietlDCT(blokDCT);
+    cout<<endl;
+    noweDane = idct(blokDane.dct);
+    wyswietlDCT(noweDane);
+    cout<<endl;
     SDL_UpdateWindowSurface(window);
 }
 
@@ -211,11 +244,8 @@ void Funkcja8() {
 }
 
 void Funkcja9() {
-
-    // Czyszczenie ekranu
-    czyscEkran(0, 0, 0);
-
-    SDL_UpdateWindowSurface(window);
+    // Kompresja DCT zgodnie z zadaniem
+    kompresjaDCT();
 }
 
 
