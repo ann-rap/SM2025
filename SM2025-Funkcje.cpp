@@ -410,7 +410,7 @@ void przetworzIZapiszBlok(std::ofstream& plik, Uint8* bufor, int width, int heig
             if (x + bx < width && y + by < height) {
                 blokWe[bx][by] = bufor[(y + by) * width + (x + bx)];
             } else {
-                blokWe[bx][by] = 0;
+                blokWe[bx][by] = (width < hwidth) ? 128 : 0;
             }
         }
     }
@@ -419,39 +419,68 @@ void przetworzIZapiszBlok(std::ofstream& plik, Uint8* bufor, int width, int heig
     float zigzag[rozmiarBloku * rozmiarBloku];
     zigzagCollect(poDCT.dct, zigzag);
 
-    int ileWspolczynnikow = 15;
+    int ileWspolczynnikow = rozmiarBloku * rozmiarBloku; // Dla N=16 to 256
+
     for(int k = 0; k < ileWspolczynnikow; k++) {
-        int wartosc = (int)(zigzag[k] / 2.0f); // Kwantyzacja / 2
-        if(wartosc > 127) wartosc = 127;
+        int wartosc;
+        if (k == 0) {
+            // ZMIANA: 32.0f dla bezpieczeństwa przy blokach 16x16
+            wartosc = (int)round(zigzag[k] / 32.0f);
+        } else if (k < 10) {
+            wartosc = (int)round(zigzag[k] / 4.0f);
+        } else if (k < 28) {
+            wartosc = (int)round(zigzag[k] / 8.0f);
+        } else {
+            wartosc = (int)round(zigzag[k] / 16.0f);
+        }
+
+        // Clamp zapobiega "czarnym dziurom"
+        if(wartosc > 127)  wartosc = 127;
         if(wartosc < -128) wartosc = -128;
-        char b = (char)wartosc;
-        plik.write(&b, 1);
+
+        int8_t b = (int8_t)wartosc;
+        plik.write((char*)&b, 1);
     }
 }
 
 void odczytajIPrzetworzBlok(std::ifstream& plik, Uint8* bufor, int width, int height, int x, int y) {
-    float zigzag[rozmiarBloku * rozmiarBloku];
-    for(int k=0; k < rozmiarBloku * rozmiarBloku; k++) zigzag[k] = 0.0f;
+    float zigzag[rozmiarBloku * rozmiarBloku] = {0.0f};
+    int ileWspolczynnikow = rozmiarBloku * rozmiarBloku;
 
-    int ileWspolczynnikow = 15;
     for(int k = 0; k < ileWspolczynnikow; k++) {
         char b;
         plik.read(&b, 1);
-        zigzag[k] = (float)((int)b * 2.0f); // Dekwantyzacja * 2
+        int8_t signed_val = (int8_t)b;
+        int wartosc = (int)signed_val;
+
+        if (k == 0) {
+            zigzag[k] = (float)wartosc * 32.0f; // Synchronizacja z koderem
+        } else if (k < 10) {
+            zigzag[k] = (float)wartosc * 4.0f;
+        } else if (k < 28) {
+            zigzag[k] = (float)wartosc * 8.0f;
+        } else {
+            zigzag[k] = (float)wartosc * 16.0f;
+        }
     }
 
-    macierz poIDCT;
-    zigzagReconstruct(zigzag, poIDCT.dct);
-    macierz wynik = idct(poIDCT.dct);
+    float blokDCT[rozmiarBloku][rozmiarBloku];
+    zigzagReconstruct(zigzag, blokDCT);
+    macierz wyj = idct(blokDCT);
 
     for(int by = 0; by < rozmiarBloku; by++) {
         for(int bx = 0; bx < rozmiarBloku; bx++) {
             if (x + bx < width && y + by < height) {
-                bufor[(y + by) * width + (x + bx)] = wynik.dane[bx][by];
+                // Rzutowanie na int zapobiega błędom sumowania
+                int piksel = (int)wyj.dane[bx][by];
+                if(piksel > 255) piksel = 255;
+                if(piksel < 0) piksel = 0;
+                bufor[(y + by) * width + (x + bx)] = (Uint8)piksel;
             }
         }
     }
 }
+
 
 
 void zapiszDG24(string nazwaPliku, uint8_t tryb, uint8_t predykcja, uint8_t kompresja) {
@@ -472,71 +501,88 @@ void zapiszDG24(string nazwaPliku, uint8_t tryb, uint8_t predykcja, uint8_t komp
     streampos posSize = plik.tellp();
     plik.write((char*)&placeholder, 4);
 
-    if (kompresja == 2) {
-        cout << "[DCT] Subsampling 4:2:0 -> DCT..." << endl;
+if (kompresja == 2) {
+    cout << "[DCT] Subsampling 4:2:0 -> DCT..." << endl;
 
-        int w2 = hwidth / 2;
-        int h2 = hheight / 2;
+    int w2 = hwidth / 2;
+    int h2 = hheight / 2;
 
-        DaneKompresji daneKom;
-        daneKom.Y  = new Uint8[hwidth * hheight];
-        daneKom.Cb = new Uint8[w2 * h2];
-        daneKom.Cr = new Uint8[w2 * h2];
+    DaneKompresji daneKom;
+    daneKom.Y  = new Uint8[hwidth * hheight];
+    daneKom.Cb = new Uint8[w2 * h2];
+    daneKom.Cr = new Uint8[w2 * h2];
 
-        // 1. Subsampling do tablicy globalnej subcolors i wyswietlenie po prawej
-        subsample420_YCbCr(hwidth, hheight);
-        SDL_UpdateWindowSurface(window);
+    // 1. Subsampling do tablicy globalnej subcolors i wyswietlenie po prawej
+    subsample420_YCbCr(hwidth, hheight);
+    SDL_UpdateWindowSurface(window);
 
-        // 2. Przepisanie z tablicy globalnej subcolors do buforow DCT
-        // Zgodnie z poleceniem: mamy juz wartosci po subsamplingu w tablicy
-        for (int y = 0; y < hheight; y++) {
-            for (int x = 0; x < hwidth; x++) {
-                // Y (c1) bierzemy dla każdego piksela
-                daneKom.Y[y * hwidth + x] = (Uint8)subcolors[x][y].c1;
-            }
+    // 2. Przepisanie z tablicy globalnej subcolors do buforow DCT
+    for (int y = 0; y < hheight; y++) {
+        for (int x = 0; x < hwidth; x++) {
+            daneKom.Y[y * hwidth + x] = (Uint8)subcolors[x][y].c1;
         }
-
-        // Cb (c2) i Cr (c3) bierzemy tylko dla pikseli co 2 (zgodnie z 4:2:0)
-        for (int y = 0; y < h2; y++) {
-            for (int x = 0; x < w2; x++) {
-                // Mapujemy małe współrzędne (x,y) na duże (2x, 2y) z tablicy subcolors
-                daneKom.Cb[y * w2 + x] = (Uint8)subcolors[x*2][y*2].c2;
-                daneKom.Cr[y * w2 + x] = (Uint8)subcolors[x*2][y*2].c3;
-            }
-        }
-
-        streampos startData = plik.tellp();
-
-        // 3. ZAPIS BLOKÓW DCT
-        // Y (Pełny rozmiar)
-        for(int y = 0; y < hheight; y += rozmiarBloku) {
-            for(int x = 0; x < hwidth; x += rozmiarBloku) {
-                przetworzIZapiszBlok(plik, daneKom.Y, hwidth, hheight, x, y);
-            }
-        }
-        // Cb (Połówkowy)
-        for(int y = 0; y < h2; y += rozmiarBloku) {
-            for(int x = 0; x < w2; x += rozmiarBloku) {
-                przetworzIZapiszBlok(plik, daneKom.Cb, w2, h2, x, y);
-            }
-        }
-        // Cr (Połówkowy)
-        for(int y = 0; y < h2; y += rozmiarBloku) {
-            for(int x = 0; x < w2; x += rozmiarBloku) {
-                przetworzIZapiszBlok(plik, daneKom.Cr, w2, h2, x, y);
-            }
-        }
-
-        streampos endData = plik.tellp();
-        uint32_t size = (uint32_t)(endData - startData);
-        plik.seekp(posSize);
-        plik.write((char*)&size, 4);
-
-        delete[] daneKom.Y; delete[] daneKom.Cb; delete[] daneKom.Cr;
-        plik.close();
-        cout << "[SUKCES] Rozmiar: " << size << endl;
-        return;
     }
+
+    for (int y = 0; y < h2; y++) {
+        for (int x = 0; x < w2; x++) {
+            daneKom.Cb[y * w2 + x] = (Uint8)subcolors[x*2][y*2].c2;
+            daneKom.Cr[y * w2 + x] = (Uint8)subcolors[x*2][y*2].c3;
+        }
+    }
+
+    // DEBUG - sprawdź wartości przed zapisem
+    cout << "[DEBUG ZAPIS] Y[0]=" << (int)daneKom.Y[0] << " Y[100]=" << (int)daneKom.Y[100]
+         << " Cb[0]=" << (int)daneKom.Cb[0] << " Cr[0]=" << (int)daneKom.Cr[0] << endl;
+
+    streampos startData = plik.tellp();
+
+    // 3. ZAPIS BLOKÓW DCT
+    cout << "[DEBUG] Zapisywanie blokow Y..." << endl;
+    int blokowY = 0;
+    for(int y = 0; y < hheight; y += rozmiarBloku) {
+        for(int x = 0; x < hwidth; x += rozmiarBloku) {
+            przetworzIZapiszBlok(plik, daneKom.Y, hwidth, hheight, x, y);
+            blokowY++;
+        }
+    }
+    cout << "[DEBUG] Zapisano " << blokowY << " blokow Y" << endl;
+
+    // Cb (Połówkowy)
+    cout << "[DEBUG] Zapisywanie blokow Cb..." << endl;
+    int blokowCb = 0;
+    for(int y = 0; y < h2; y += rozmiarBloku) {
+        for(int x = 0; x < w2; x += rozmiarBloku) {
+            przetworzIZapiszBlok(plik, daneKom.Cb, w2, h2, x, y);
+            blokowCb++;
+        }
+    }
+    cout << "[DEBUG] Zapisano " << blokowCb << " blokow Cb" << endl;
+
+    // Cr (Połówkowy)
+    cout << "[DEBUG] Zapisywanie blokow Cr..." << endl;
+    int blokowCr = 0;
+    for(int y = 0; y < h2; y += rozmiarBloku) {
+        for(int x = 0; x < w2; x += rozmiarBloku) {
+            przetworzIZapiszBlok(plik, daneKom.Cr, w2, h2, x, y);
+            blokowCr++;
+        }
+    }
+    cout << "[DEBUG] Zapisano " << blokowCr << " blokow Cr" << endl;
+
+    streampos endData = plik.tellp();
+    uint32_t size = (uint32_t)(endData - startData);
+    plik.seekp(posSize);
+    plik.write((char*)&size, 4);
+
+    delete[] daneKom.Y; delete[] daneKom.Cb; delete[] daneKom.Cr;
+    plik.close();
+    cout << "[SUKCES] Rozmiar: " << size << endl;
+
+    // Oblicz oczekiwany rozmiar
+   int expectedSize = (blokowY + blokowCb + blokowCr) * 64;  // <-- ZMIANA z *15 na *64
+cout << "[DEBUG] Oczekiwany rozmiar: " << expectedSize << " bajtow" << endl;
+    return;
+}
 
     if (predykcja == 1) {
         if (tryb == 0 || tryb == 3) filtrujRGB555_Typ3();
@@ -628,56 +674,74 @@ void wczytajDG24(string nazwaPliku) {
 
     cout << "[INFO] " << w << "x" << h << " Tryb:" << getOpisTrybu(tryb) << " Komp:" << getOpisKompresji(komp) << endl;
 
-    if (komp == 2) {
-        cout << "[DCT] Dekompresja..." << endl;
 
-        int w2 = hwidth / 2;
-        int h2 = hheight / 2;
+  if (komp == 2) {
+    cout << "[DCT] Dekompresja..." << endl;
 
-        DaneKompresji daneKom;
-        daneKom.Y  = new Uint8[hwidth * hheight];
-        daneKom.Cb = new Uint8[w2 * h2];
-        daneKom.Cr = new Uint8[w2 * h2];
+    int w2 = hwidth / 2;
+    int h2 = hheight / 2;
 
-        // 1. ODCZYT I DEKWANTYZACJA DCT
-        for(int y=0; y<hheight; y+=rozmiarBloku) {
-            for(int x=0; x<hwidth; x+=rozmiarBloku) {
-                odczytajIPrzetworzBlok(plik, daneKom.Y, hwidth, hheight, x, y);
-            }
+    DaneKompresji daneKom;
+    daneKom.Y  = new Uint8[hwidth * hheight];
+    daneKom.Cb = new Uint8[w2 * h2];
+    daneKom.Cr = new Uint8[w2 * h2];
+
+    // Sprawdź pozycję w pliku przed odczytem
+    streampos posPrzed = plik.tellg();
+    cout << "[DEBUG] Pozycja w pliku przed odczytem: " << posPrzed << endl;
+
+    // 1. ODCZYT I DEKWANTYZACJA DCT
+    cout << "[DEBUG] Odczytywanie blokow Y..." << endl;
+    int blokowY = 0;
+    for(int y=0; y<hheight; y+=rozmiarBloku) {
+        for(int x=0; x<hwidth; x+=rozmiarBloku) {
+            odczytajIPrzetworzBlok(plik, daneKom.Y, hwidth, hheight, x, y);
+            blokowY++;
         }
-        for(int y=0; y<h2; y+=rozmiarBloku) {
-            for(int x=0; x<w2; x+=rozmiarBloku) {
-                odczytajIPrzetworzBlok(plik, daneKom.Cb, w2, h2, x, y);
-            }
-        }
-        for(int y=0; y<h2; y+=rozmiarBloku) {
-            for(int x=0; x<w2; x+=rozmiarBloku) {
-                odczytajIPrzetworzBlok(plik, daneKom.Cr, w2, h2, x, y);
-            }
-        }
-
-        // 2. WYŚWIETLANIE (LEWA STRONA) - REKONSTRUKCJA 4:2:0
-        // Dokładnie jak chciałeś: dla każdego piksela pobieramy wartości i używamy setYCbCr
-
-        for (int y = 0; y < hheight; y++) {
-            for (int x = 0; x < hwidth; x++) {
-                // Y (Luma) bierzemy dla każdego piksela (pełna rozdzielczość)
-                float yVal = (float)daneKom.Y[y * hwidth + x];
-
-                // Cb i Cr bierzemy z tablic pomniejszonych (dzielimy współrzędne przez 2)
-                float cbVal = (float)daneKom.Cb[(y / 2) * w2 + (x / 2)];
-                float crVal = (float)daneKom.Cr[(y / 2) * w2 + (x / 2)];
-
-                setYCbCr(x, y, yVal, cbVal, crVal);
-            }
-        }
-
-        delete[] daneKom.Y; delete[] daneKom.Cb; delete[] daneKom.Cr;
-        plik.close();
-        SDL_UpdateWindowSurface(window);
-        cout << "[SUKCES] Wczytano DCT." << endl;
-        return;
     }
+    cout << "[DEBUG] Odczytano " << blokowY << " blokow Y" << endl;
+
+    cout << "[DEBUG] Odczytywanie blokow Cb..." << endl;
+    int blokowCb = 0;
+    for(int y=0; y<h2; y+=rozmiarBloku) {
+        for(int x=0; x<w2; x+=rozmiarBloku) {
+            odczytajIPrzetworzBlok(plik, daneKom.Cb, w2, h2, x, y);
+            blokowCb++;
+        }
+    }
+    cout << "[DEBUG] Odczytano " << blokowCb << " blokow Cb" << endl;
+
+    cout << "[DEBUG] Odczytywanie blokow Cr..." << endl;
+    int blokowCr = 0;
+    for(int y=0; y<h2; y+=rozmiarBloku) {
+        for(int x=0; x<w2; x+=rozmiarBloku) {
+            odczytajIPrzetworzBlok(plik, daneKom.Cr, w2, h2, x, y);
+            blokowCr++;
+        }
+    }
+    cout << "[DEBUG] Odczytano " << blokowCr << " blokow Cr" << endl;
+
+    // Debug - sprawdź wartości
+    cout << "[DEBUG ODCZYT] Y[0]=" << (int)daneKom.Y[0] << " Y[100]=" << (int)daneKom.Y[100]
+         << " Cb[0]=" << (int)daneKom.Cb[0] << " Cr[0]=" << (int)daneKom.Cr[0] << endl;
+
+    // 2. WYŚWIETLANIE (LEWA STRONA)
+    for (int y = 0; y < hheight; y++) {
+        for (int x = 0; x < hwidth; x++) {
+            float yVal = (float)daneKom.Y[y * hwidth + x];
+            float cbVal = (float)daneKom.Cb[(y / 2) * w2 + (x / 2)];
+            float crVal = (float)daneKom.Cr[(y / 2) * w2 + (x / 2)];
+
+            setYCbCr(x, y, yVal, cbVal, crVal);
+        }
+    }
+
+    delete[] daneKom.Y; delete[] daneKom.Cb; delete[] daneKom.Cr;
+    plik.close();
+    SDL_UpdateWindowSurface(window);
+    cout << "[SUKCES] Wczytano DCT." << endl;
+    return;
+}
 
     // --- POZOSTAŁE TRYBY (Bez zmian) ---
     // ... reszta kodu wczytajDG24 ...
@@ -726,24 +790,36 @@ void wczytajDG24(string nazwaPliku) {
             }
         }
 
-        if (tryb == 2 || tryb == 5) {
-            for (int y = 0; y < h; y++) {
-                for (int x = 0; x < w; x++) {
-                    YCbCr diff = filtrYCbCr[x][y];
-                    YCbCr left = (x > 0) ? buforYCbCr[x - 1][y] : YCbCr{0, 0, 0};
-                    YCbCr up   = (y > 0) ? buforYCbCr[x][y - 1] : YCbCr{0, 0, 0};
-                    float predY  = floor((left.y + up.y) / 2.0f);
-                    float predCb = floor((left.cb + up.cb) / 2.0f);
-                    float predCr = floor((left.cr + up.cr) / 2.0f);
-                    YCbCr rec;
-                    rec.y  = diff.y + predY;
-                    rec.cb = diff.cb + predCb;
-                    rec.cr = diff.cr + predCr;
-                    buforYCbCr[x][y] = rec;
-                    setYCbCr(x, y, rec.y, rec.cb, rec.cr);
-                }
+  if (tryb == 2 || tryb == 5) {
+    YCbCr neutral = {0.0f, 128.0f, 128.0f};
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            YCbCr diff = filtrYCbCr[x][y];
+
+            YCbCr left = (x > 0) ? buforYCbCr[x - 1][y] : neutral;
+            YCbCr up   = (y > 0) ? buforYCbCr[x][y - 1] : neutral;
+
+            int predY  = (int)floor((left.y  + up.y)  / 2.0f);
+            int predCb = (int)floor((left.cb + up.cb) / 2.0f);
+            int predCr = (int)floor((left.cr + up.cr) / 2.0f);
+
+            YCbCr rec;
+            // Bardzo ważne rzutowanie (Uint8) na sumie intów
+            rec.y  = (float)((Uint8)((int)diff.y + predY));
+
+            if (tryb == 5) {
+                rec.cb = 128.0f;
+                rec.cr = 128.0f;
+            } else {
+                rec.cb = (float)((Uint8)((int)diff.cb + predCb));
+                rec.cr = (float)((Uint8)((int)diff.cr + predCr));
             }
+
+            buforYCbCr[x][y] = rec;
+            setYCbCr(x, y, rec.y, rec.cb, rec.cr);
         }
+    }
+}
         else if (tryb == 0 || tryb == 3) odfiltrujRGB555_Typ3();
         else if (tryb == 1 || tryb == 4) odfiltrujPNG_Typ3();
 

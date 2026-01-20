@@ -136,38 +136,47 @@ void subsample420_YCbCr(int width, int height) {
         }
     }
 }
+
 void filtrujYCbCr_Typ3(bool isGray) {
     int w = hwidth;
     int h = hheight;
+    YCbCr neutral = {0.0f, 128.0f, 128.0f};
 
     for (int y = 0; y < h; y++) {
         for (int x = 0; x < w; x++) {
             YCbCr cur = getYCbCr(x, y);
+            if (isGray) { cur.cb = 128; cur.cr = 128; }
 
-            if (isGray) {
-                cur.cb = 128;
-                cur.cr = 128;
-            }
+            // POBIERAMY Z BUFORA REKONSTRUKCJI (symulujemy dekoder!)
+            // Jeśli nie masz osobnego bufora, użyj buforYCbCr po uprzednim wyczyszczeniu
+            YCbCr left = (x > 0) ? buforYCbCr[x - 1][y] : neutral;
+            YCbCr up   = (y > 0) ? buforYCbCr[x][y - 1] : neutral;
 
-            YCbCr left = (x > 0) ? getYCbCr(x - 1, y) : YCbCr{0, 0, 0};
-            YCbCr up   = (y > 0) ? getYCbCr(x, y - 1) : YCbCr{0, 0, 0};
+            // Liczymy predykcję identycznie jak w dekoderze
+            int predY  = (int)floor((left.y  + up.y)  / 2.0);
+            int predCb = (int)floor((left.cb + up.cb) / 2.0);
+            int predCr = (int)floor((left.cr + up.cr) / 2.0);
 
-            if (isGray) {
-                if (x > 0) { left.cb = 128; left.cr = 128; }
-                if (y > 0) { up.cb = 128; up.cr = 128; }
-            }
+            // Różnica
+            int diffY  = (int)cur.y  - predY;
+            int diffCb = (int)cur.cb - predCb;
+            int diffCr = (int)cur.cr - predCr;
 
-            float predY  = floor((left.y + up.y) / 2.0f);
-            float predCb = floor((left.cb + up.cb) / 2.0f);
-            float predCr = floor((left.cr + up.cr) / 2.0f);
-
-            int diffY  = (int)cur.y - (int)predY;
-            int diffCb = (int)cur.cb - (int)predCb;
-            int diffCr = (int)cur.cr - (int)predCr;
-
+            // Zapisujemy do bufora filtra (Uint8 wrap-around)
             filtrYCbCr[x][y].y  = (float)((Uint8)diffY);
             filtrYCbCr[x][y].cb = (float)((Uint8)diffCb);
             filtrYCbCr[x][y].cr = (float)((Uint8)diffCr);
+
+            // AKTUALIZUJEMY BUFOR REKONSTRUKCJI (klucz do sukcesu)
+            // Koder musi teraz obliczyć to, co obliczy dekoder, by kolejny piksel miał dobrą bazę
+            buforYCbCr[x][y].y  = (float)((Uint8)((Uint8)diffY + predY));
+            if (isGray) {
+                buforYCbCr[x][y].cb = 128.0f;
+                buforYCbCr[x][y].cr = 128.0f;
+            } else {
+                buforYCbCr[x][y].cb = (float)((Uint8)((Uint8)diffCb + predCb));
+                buforYCbCr[x][y].cr = (float)((Uint8)((Uint8)diffCr + predCr));
+            }
         }
     }
 }
@@ -511,7 +520,7 @@ macierz dct(Uint8 wartosci[rozmiarBloku][rozmiarBloku]) {
                         cos((double)(2 * y + 1) * M_PI *
                             (double)v / (2 * (double)rozmiarBloku));
 
-                    double pixel = (double)wartosci[x][y];
+                    double pixel = (double)wartosci[x][y] - 128.0;
                     wspolczynnikDCT += pixel * uCosFactor * vCosFactor;
                 }
             }
@@ -563,7 +572,7 @@ macierz idct(float DCT[rozmiarBloku][rozmiarBloku]) {
             }
 
             pixel *= (2.0 / (double)rozmiarBloku);
-            wynik[x][y] = round(pixel);
+            wynik[x][y] = round(pixel + 128.0);
         }
     }
 
@@ -620,8 +629,8 @@ void zigzagCollect(float dct[rozmiarBloku][rozmiarBloku], float output[256]) {
         }
 
         if(x >= 0 && x < rozmiarBloku && y >= 0 && y < rozmiarBloku) {
-            output[index++] = dct[x][y];
-        }
+                output[index++] = dct[y][x]; // y to wiersz, x to kolumna
+            }
 
         // Sprawdź czy doszliśmy do końca
         if(x == rozmiarBloku - 1 && y == rozmiarBloku - 1) break;
@@ -671,8 +680,8 @@ void zigzagReconstruct(float zigzag[256], float dct[rozmiarBloku][rozmiarBloku])
         }
 
         if(x >= 0 && x < rozmiarBloku && y >= 0 && y < rozmiarBloku) {
-            dct[x][y] = zigzag[index++];
-        }
+                dct[y][x] = zigzag[index++]; // y to wiersz, x to kolumna
+            }
 
         // Sprawdź czy doszliśmy do końca
         if(x == rozmiarBloku - 1 && y == rozmiarBloku - 1) break;
