@@ -5,6 +5,8 @@
 #include "SM2025-MedianCut.h"
 #include "SM2025-Pliki.h"
 #include <iomanip>
+#include <string>
+#include <fstream>
 const int pixel_count = hheight*hwidth;
 
 // Globalne zmienne do przechowywania wyników
@@ -244,7 +246,6 @@ void Funkcja8() {
 }
 
 void Funkcja9() {
-    // Kompresja DCT zgodnie z zadaniem
     kompresjaDCT();
 }
 
@@ -633,51 +634,378 @@ double procR = 100 - ((double)komp.rtab->len / pixel_count * 100.0);
 
     SDL_UpdateWindowSurface(window);
     cout << "Gotowe!\n" << endl;
+
+}
+// Pomocnik do wyświetlania nazw trybów zgodnie z Tabelą 1.1
+string getOpisTrybu(uint8_t t) {
+    switch(t) {
+        case 0: return "RGB555 (15-bit)";
+        case 1: return "RGB888 (24-bit)";
+        case 2: return "YCbCr888 (24-bit)";
+        case 3: return "RGB555 + Dithering";
+        case 4: return "Skala Szarosci RGB888";
+        case 5: return "Skala Szarosci YCbCr888";
+        default: return "Nieznany";
+    }
 }
 
-//Sprawdzenie wartosci jednego wiersza obrazku do zadania z RLE, wywołanie przez "w"
-void wypiszWiersz(int y) {
-    if (y < 0 || y >= hheight) {
-        cout << "Nieprawidlowy numer wiersza! (0-" << (hheight-1) << ")" << endl;
-        return;
+
+string getOpisKompresji(uint8_t k) {
+    switch(k) {
+        case 0: return "Brak (RAW)";
+        case 1: return "Bezstratna (RLE)";
+        case 2: return "Stratna (DCT)";
+        default: return "Nieznana";
     }
-
-    cout << "\n=== WIERSZ " << y << " ===" << endl;
-
-    // Wiersz R (czerwony)
-    cout << "R: ";
-    for(int x = 0; x < hwidth; x++) {
-        SDL_Color pixel = getPixel(x, y);
-        cout << (int)pixel.r << " ";
-    }
-    cout << endl;
-
-    // Wiersz G (zielony)
-    cout << "G: ";
-    for(int x = 0; x < hwidth; x++) {
-        SDL_Color pixel = getPixel(x, y);
-        cout << (int)pixel.g << " ";
-    }
-    cout << endl;
-
-    // Wiersz B (niebieski)
-    cout << "B: ";
-    for(int x = 0; x < hwidth; x++) {
-        SDL_Color pixel = getPixel(x, y);
-        cout << (int)pixel.b << " ";
-    }
-    cout << endl << endl;
-
-    int* test = new int[hwidth];
-for(int x = 0; x < hwidth; x++) {
-    SDL_Color pixel = getPixel(x, y);
-    test[x] = pixel.r;
-}
-RLE* komp = RLEKompresja(test, hwidth);
-cout << "Oryginalny rozmiar: " << hwidth << endl;
-cout << "Po kompresji RLE: " << komp->len << endl;
-cout << "Zmiana: " << (komp->len - hwidth) << endl;
-delete komp;
-delete[] test;
 }
 
+
+void zapiszDG24(string nazwaPliku, uint8_t tryb, uint8_t predykcja, uint8_t kompresja) {
+    cout << "\n[ZAPIS] Start zapisu: " << nazwaPliku << endl;
+    ofstream plik(nazwaPliku, ios::binary);
+    if (!plik) { cout << "[BLAD] Brak dostepu do pliku!" << endl; return; }
+
+    // --- 1. NAGŁÓWEK ---
+    plik.write("DG24", 4);
+    uint16_t w = (uint16_t)hwidth;
+    uint16_t h = (uint16_t)hheight;
+    plik.write((char*)&w, 2);
+    plik.write((char*)&h, 2);
+    plik.write((char*)&tryb, 1);
+    plik.write((char*)&predykcja, 1);
+    plik.write((char*)&kompresja, 1);
+
+    uint32_t placeholder = 0;
+    streampos posSize = plik.tellp();
+    plik.write((char*)&placeholder, 4);
+
+    cout << "[INFO] Naglowek OK. Tryb: " << (int)tryb << endl;
+
+    // --- 2. PREDYKCJA ---
+    if (predykcja == 1) {
+        cout << "[PROCES] Predykcja..." << endl;
+        if (tryb == 0 || tryb == 3) {
+            filtrujRGB555_Typ3(); // Zapisuje do filtrRGB555
+        }
+        else if (tryb == 1 || tryb == 4) { // RGB888 i Szary RGB
+            filtrujPNG_Typ3();    // Zapisuje do filtrPNG
+        }
+        else if (tryb == 2 || tryb == 5) { // YCbCr i Szary YCbCr
+            // Używamy nowej, dedykowanej funkcji (true jeśli tryb 5)
+            filtrujYCbCr_Typ3(tryb == 5);
+        }
+    }
+
+    // --- 3. ZBIERANIE DANYCH ---
+    cout << "[PROCES] Agregacja danych..." << endl;
+    int count = hwidth * hheight;
+    Kolor* dane = new Kolor[count];
+
+    for (int y = 0; y < hheight; y++) {
+        for (int x = 0; x < hwidth; x++) {
+            int i = y * hwidth + x;
+
+            if (predykcja == 1) {
+                // POBIERAMY Z TABLIC FILTRÓW
+                if (tryb == 0 || tryb == 3) {
+                    dane[i].c1 = filtrRGB555_lo[x][y];
+                    dane[i].c2 = filtrRGB555_hi[x][y];
+                    dane[i].c3 = 0;
+                } else if (tryb == 1 || tryb == 4) {
+                    dane[i].c1 = filtrPNG[x][y].r;
+                    dane[i].c2 = filtrPNG[x][y].g;
+                    dane[i].c3 = filtrPNG[x][y].b;
+                } else if (tryb == 2 || tryb == 5) {
+                    // Pobieramy z nowej tablicy filtrYCbCr
+                    dane[i].c1 = (Uint8)filtrYCbCr[x][y].y;
+                    dane[i].c2 = (Uint8)filtrYCbCr[x][y].cb;
+                    dane[i].c3 = (Uint8)filtrYCbCr[x][y].cr;
+                }
+            } else {
+                // POBIERAMY Z EKRANU (LEWA STRONA)
+                if (tryb == 0) { // RGB555
+                    Uint16 px = getRGB555_(x, y);
+                    dane[i].c1 = px & 0xFF;
+                    dane[i].c2 = (px >> 8) & 0xFF;
+                    dane[i].c3 = 0;
+                }
+                else if (tryb == 3) { // RGB555 + Dither
+                    Uint16 px = getRGB555D_(x, y);
+                    dane[i].c1 = px & 0xFF;
+                    dane[i].c2 = (px >> 8) & 0xFF;
+                    dane[i].c3 = 0;
+                }
+                else if (tryb == 1) { // RGB888
+                    SDL_Color px = getPixel(x, y);
+                    dane[i].c1 = px.r; dane[i].c2 = px.g; dane[i].c3 = px.b;
+                }
+                else if (tryb == 4) { // RGB888 SZARY
+                    SDL_Color px = getPixel(x, y);
+                    Uint8 szary = (Uint8)(0.299*px.r + 0.587*px.g + 0.114*px.b);
+                    dane[i].c1 = szary; dane[i].c2 = szary; dane[i].c3 = szary;
+                }
+                else if (tryb == 2) { // YCbCr888
+                    YCbCr px = getYCbCr(x, y);
+                    dane[i].c1 = (Uint8)px.y; dane[i].c2 = (Uint8)px.cb; dane[i].c3 = (Uint8)px.cr;
+                }
+                else if (tryb == 5) { // YCbCr888 SZARY
+                    YCbCr px = getYCbCr(x, y);
+                    dane[i].c1 = (Uint8)px.y;
+                    dane[i].c2 = 128; // Zerujemy kolor
+                    dane[i].c3 = 128; // Zerujemy kolor
+                }
+            }
+        }
+    }
+
+    // --- 4. ZAPIS (RAW / RLE) ---
+    streampos startData = plik.tellp();
+
+    if (kompresja == 1) {
+        cout << "[PROCES] Kompresja RLE i zapis..." << endl;
+        RLEColors rle = kompresjaObrazu_RLE(dane, count);
+        zapiszRLEdoStrumienia(plik, &rle);
+
+        delete rle.rtab; delete rle.gtab; delete rle.btab;
+    } else {
+        cout << "[PROCES] Zapis RAW..." << endl;
+        for(int i=0; i<count; i++) {
+            char b[3] = {(char)dane[i].c1, (char)dane[i].c2, (char)dane[i].c3};
+            if(tryb == 0 || tryb == 3) plik.write(b, 2);
+            else plik.write(b, 3);
+        }
+    }
+
+    streampos endData = plik.tellp();
+    uint32_t size = (uint32_t)(endData - startData);
+    plik.seekp(posSize);
+    plik.write((char*)&size, 4);
+
+    plik.close();
+    delete[] dane;
+    cout << "[SUKCES] Plik zapisany. Bajtow danych: " << size << endl;
+}
+
+void wczytajDG24(string nazwaPliku) {
+    cout << "\n[ODCZYT] Start odczytu: " << nazwaPliku << endl;
+    ifstream plik(nazwaPliku, ios::binary);
+    if (!plik) { cout << "[BLAD] Plik nie istnieje!" << endl; return; }
+
+    char head[4];
+    uint16_t w, h;
+    uint8_t tryb, pred, komp;
+    uint32_t rozmiar;
+
+    plik.read(head, 4);
+    if (string(head,4) != "DG24") { cout << "[BLAD] Zly naglowek!" << endl; return; }
+
+    plik.read((char*)&w, 2);
+    plik.read((char*)&h, 2);
+    plik.read((char*)&tryb, 1);
+    plik.read((char*)&pred, 1);
+    plik.read((char*)&komp, 1);
+    plik.read((char*)&rozmiar, 4);
+
+    cout << "[INFO] Format: " << w << "x" << h << " Tryb:" << (int)tryb
+         << " Pred:" << (int)pred << " Komp:" << (int)komp << endl;
+
+    int count = w * h;
+    Kolor* dane = nullptr;
+
+    // --- 1. ODCZYT/DEKOMPRESJA ---
+    if (komp == 1) {
+        cout << "[PROCES] Dekompresja RLE..." << endl;
+        RLE* r = new RLE(nullptr, 0);
+        RLE* l = new RLE(nullptr, 0);
+        RLE* e = new RLE(nullptr, 0);
+        RLEColors rle(r, l, e);
+
+        wczytajPojedynczyRLE(plik, rle.rtab);
+        wczytajPojedynczyRLE(plik, rle.gtab);
+        wczytajPojedynczyRLE(plik, rle.btab);
+
+        dane = dekompresjaObrazu_RLE(&rle);
+
+        delete rle.rtab; delete rle.gtab; delete rle.btab;
+    } else {
+        cout << "[PROCES] Odczyt RAW..." << endl;
+        dane = new Kolor[count];
+        for(int i=0; i<count; i++) {
+            char b;
+            plik.read(&b, 1); dane[i].c1 = (Uint8)b;
+            plik.read(&b, 1); dane[i].c2 = (Uint8)b;
+            if (tryb != 0 && tryb != 3) {
+                plik.read(&b, 1); dane[i].c3 = (Uint8)b;
+            } else {
+                dane[i].c3 = 0;
+            }
+        }
+    }
+    plik.close();
+
+    // --- 2. REKONSTRUKCJA I WIZUALIZACJA (PRAWA STRONA) ---
+    cout << "[PROCES] Wyswietlanie obrazu..." << endl;
+
+    if (pred == 1) {
+        // A. Wypełnienie tablic filtrów danymi z pliku
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                int i = y * w + x;
+                if (tryb == 0 || tryb == 3) {
+                    filtrRGB555_lo[x][y] = dane[i].c1;
+                    filtrRGB555_hi[x][y] = dane[i].c2;
+                } else if (tryb == 1 || tryb == 4) {
+                    filtrPNG[x][y].r = dane[i].c1;
+                    filtrPNG[x][y].g = dane[i].c2;
+                    filtrPNG[x][y].b = dane[i].c3;
+                } else if (tryb == 2 || tryb == 5) {
+                    // Wpisujemy do nowej tablicy
+                    filtrYCbCr[x][y].y  = (float)dane[i].c1;
+                    filtrYCbCr[x][y].cb = (float)dane[i].c2;
+                    filtrYCbCr[x][y].cr = (float)dane[i].c3;
+                }
+            }
+        }
+
+        // B. Odwrócenie predykcji i rysowanie
+        // Upewnij się, że Twoje funkcje odfiltruj... też rysują na prawej stronie!
+        // Jeśli nie, trzeba je zmodyfikować. Tutaj zakładam, że odfiltrujRGB555 i PNG to robią.
+        // Dla YCbCr używamy nowej funkcji, która na 100% to robi.
+
+        if (tryb == 0 || tryb == 3) {
+            odfiltrujRGB555_Typ3(); // Rysuje w setRGB555
+            // Jeśli ta funkcja nie przesuwa o hwidth, musisz to poprawić w definicji odfiltrujRGB!
+        }
+        else if (tryb == 1 || tryb == 4) {
+            odfiltrujPNG_Typ3(); // Rysuje w setPixel
+        }
+        else if (tryb == 2 || tryb == 5) {
+            odfiltrujYCbCr_Typ3(); // Ta funkcja już rysuje setYCbCr(x+hwidth, ...)
+        }
+
+    } else {
+        // Bez predykcji - rysujemy bezpośrednio na prawej stronie
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                int i = y * w + x;
+                int targetX = x + hwidth; // PRAWA STRONA
+
+                if (tryb == 0 || tryb == 3) {
+                    Uint16 px = (Uint16)dane[i].c1 | ((Uint16)dane[i].c2 << 8);
+                    setRGB555(targetX, y, px);
+                }
+                else if (tryb == 1 || tryb == 4) { // RGB
+                    setPixel(targetX, y, dane[i].c1, dane[i].c2, dane[i].c3);
+                }
+                else if (tryb == 2 || tryb == 5) { // YCbCr
+                    setYCbCr(targetX, y, (float)dane[i].c1, (float)dane[i].c2, (float)dane[i].c3);
+                }
+            }
+        }
+    }
+
+    delete[] dane;
+    // Ważne: Odświeżenie okna, żeby zobaczyć efekt
+    SDL_UpdateWindowSurface(window);
+    cout << "[SUKCES] Obraz wyswietlony po prawej stronie." << endl;
+}
+bool czyPlikIstnieje(string nazwa) {
+    ifstream f(nazwa.c_str());
+    return f.good();
+}
+
+void AppMenu() {
+    while(true) {
+        string plikWe, plikWy;
+
+        cout << "\n================== MENU P11 ==================" << endl;
+        cout << "Podaj plik wejsciowy (lub 'exit'): ";
+        if (!(cin >> plikWe)) break;
+        if (plikWe == "exit") return;
+
+        if (!czyPlikIstnieje(plikWe)) {
+            cout << "[BLAD] Plik nie istnieje!" << endl;
+            continue;
+        }
+
+        cout << "Podaj plik wyjsciowy: "; cin >> plikWy;
+
+        string ext = "";
+        if(plikWe.find_last_of(".") != string::npos)
+            ext = plikWe.substr(plikWe.find_last_of(".") + 1);
+
+        if (ext == "dg24" || ext == "DG24") {
+            wczytajDG24(plikWe);
+
+            // Zapis do BMP (prawa strona)
+            SDL_Surface* screen = SDL_GetWindowSurface(window);
+
+            Uint32 rmask, gmask, bmask, amask;
+            #if SDL_BYTEORDER == SDL_BIG_ENDIAN
+                rmask = 0xff000000; gmask = 0x00ff0000; bmask = 0x0000ff00; amask = 0x000000ff;
+            #else
+                rmask = 0x000000ff; gmask = 0x0000ff00; bmask = 0x00ff0000; amask = 0xff000000;
+            #endif
+
+            SDL_Surface* out = SDL_CreateRGBSurface(0, hwidth, hheight, 32, rmask, gmask, bmask, amask);
+            SDL_Rect src = {hwidth, 0, hwidth, hheight};
+            SDL_Rect dst = {0, 0, hwidth, hheight};
+
+            SDL_BlitSurface(screen, &src, out, &dst);
+            SDL_SaveBMP(out, plikWy.c_str());
+            SDL_FreeSurface(out);
+            cout << "[SUKCES] Zapisano BMP." << endl;
+        }
+        else if (ext == "bmp" || ext == "BMP") {
+            ladujBMP(plikWe.c_str(), 0, 0);
+
+            int wybor;
+            uint8_t tryb = 0, pred = 0, komp = 0;
+
+            cout << "Tryb barwny (1: 16-bit | 2: 24-bit): "; cin >> wybor;
+
+            if (wybor == 1) { // 16-BIT
+                cout << "Dithering? (1: Tak | 0: Nie): "; cin >> wybor;
+                tryb = (wybor == 1) ? 3 : 0;
+                cout << "Predykcja? (1: Tak | 0: Nie): "; cin >> wybor;
+                pred = (wybor == 1) ? 1 : 0;
+                cout << "Kompresja RLE? (1: Tak | 0: Nie): "; cin >> wybor;
+                komp = (wybor == 1) ? 1 : 0;
+            }
+            else { // 24-BIT
+                cout << "Model barwny (1: RGB | 0: YCbCr): "; cin >> wybor;
+                int model = wybor; // 1=RGB, 0=YCbCr
+
+                cout << "Skala szarosci? (1: Tak | 0: Nie): "; cin >> wybor;
+                int isGray = wybor;
+
+                if (model == 1) { // RGB
+                    tryb = (isGray == 1) ? 4 : 1; // 4=Szary RGB, 1=RGB
+
+                    cout << "Kompresja RLE? (1: Tak | 0: Nie): "; cin >> wybor;
+                    komp = (wybor == 1) ? 1 : 0;
+
+                    if (komp <= 1) {
+                        cout << "Predykcja? (1: Tak | 0: Nie): "; cin >> wybor;
+                        pred = (wybor == 1) ? 1 : 0;
+                    }
+                }
+                else { // YCbCr
+                    tryb = (isGray == 1) ? 5 : 2; // 5=Szary YCbCr, 2=YCbCr
+
+                    cout << "Kompresja (2: Stratna | 1: RLE | 0: Brak): "; cin >> wybor;
+                    komp = (uint8_t)wybor;
+
+                    if (komp <= 1) {
+                        cout << "Predykcja? (1: Tak | 0: Nie): "; cin >> wybor;
+                        pred = (wybor == 1) ? 1 : 0;
+                    } else {
+                        pred = 0;
+                    }
+                }
+            }
+
+            zapiszDG24(plikWy, tryb, pred, komp);
+        }
+    }
+}

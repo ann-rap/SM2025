@@ -326,14 +326,13 @@ void zapiszPojedynczyRLE(std::ofstream& out, RLE* rle) {
     out.write(reinterpret_cast<char*>(rle->tab), len * sizeof(int16_t));
 }
 
-void zapisz_RLE(RLEColors* colors, const char* filename) {
+void zapisz_RLE(RLEColors* colors,char const* filename) {
     std::ofstream out(filename, std::ios::binary | std::ios::trunc);
     if (out.good()) {
         zapiszPojedynczyRLE(out, colors->rtab);
         zapiszPojedynczyRLE(out, colors->gtab);
         zapiszPojedynczyRLE(out, colors->btab);
         out.close();
-        std::cout << "RLE zapisane pomyślnie do: " << filename << std::endl;
     } else {
         std::cerr << "Nie udało się otworzyć pliku do zapisu RLE!" << std::endl;
     }
@@ -775,7 +774,7 @@ void zapiszPojedynczyLZW(std::ofstream& out, LZW* lzw) {
 }
 
 void zapisz_LZW(LZWColors* colors, const char* filename) {
-    std::ofstream out(filename, std::ios::binary | std::ios::trunc);
+    std::ofstream out(filename, ios::binary | ios::app | ios::out);
     if (out.good()) {
         zapiszPojedynczyLZW(out, colors->rtab);
         zapiszPojedynczyLZW(out, colors->gtab);
@@ -825,7 +824,13 @@ void wczytaj_LZW(LZWColors* colors, const char* filename) {
 
 
 
-
+void zapiszRLEdoStrumienia(ofstream& plik, RLEColors* rle) {
+    // Zakładamy, że masz funkcję zapiszPojedynczyRLE przyjmującą ofstream&
+    // Jeśli Twoja funkcja przyjmuje tylko nazwę pliku, musisz zmienić ją na wersję przyjmującą referencję do strumienia
+    zapiszPojedynczyRLE(plik, rle->rtab);
+    zapiszPojedynczyRLE(plik, rle->gtab);
+    zapiszPojedynczyRLE(plik, rle->btab);
+}
 
 
 

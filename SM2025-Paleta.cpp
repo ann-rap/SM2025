@@ -429,6 +429,72 @@ void subsample420_YCbCr(int width, int height){
     }
 }
 
+void filtrujYCbCr_Typ3(bool isGray) {
+    int w = hwidth;
+    int h = hheight;
+
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            // 1. Pobieramy oryginał z ekranu
+            YCbCr cur = getYCbCr(x, y);
+
+            // 2. Jeśli tryb szary (5), zerujemy kolor w locie
+            if (isGray) {
+                cur.cb = 128;
+                cur.cr = 128;
+            }
+
+            // 3. Pobieramy sąsiadów (z ekranu)
+            // Uwaga: dla sąsiadów też musimy zastosować logikę szarości, jeśli jest włączona!
+            YCbCr left = (x > 0) ? getYCbCr(x - 1, y) : YCbCr{0, 0, 0};
+            YCbCr up   = (y > 0) ? getYCbCr(x, y - 1) : YCbCr{0, 0, 0};
+
+            if (isGray) {
+                if (x > 0) { left.cb = 128; left.cr = 128; }
+                if (y > 0) { up.cb = 128; up.cr = 128; }
+            }
+
+            // 4. Standardowa predykcja Typ 3
+            float predY  = floor((left.y + up.y) / 2.0f);
+            float predCb = floor((left.cb + up.cb) / 2.0f);
+            float predCr = floor((left.cr + up.cr) / 2.0f);
+
+            // 5. Zapis wyniku do tablicy globalnej YCbCr
+            filtrYCbCr[x][y].y  = cur.y - predY;
+            filtrYCbCr[x][y].cb = cur.cb - predCb;
+            filtrYCbCr[x][y].cr = cur.cr - predCr;
+        }
+    }
+}
+void odfiltrujYCbCr_Typ3() {
+    int w = hwidth;
+    int h = hheight;
+
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+
+            YCbCr diff = filtrYCbCr[x][y];
+
+
+            YCbCr left = (x > 0) ? buforYCbCr[x - 1][y] : YCbCr{0, 0, 0};
+            YCbCr up   = (y > 0) ? buforYCbCr[x][y - 1] : YCbCr{0, 0, 0};
+
+
+            float predY  = floor((left.y + up.y) / 2.0f);
+            float predCb = floor((left.cb + up.cb) / 2.0f);
+            float predCr = floor((left.cr + up.cr) / 2.0f);
+
+            YCbCr rec;
+            rec.y  = diff.y + predY;
+            rec.cb = diff.cb + predCb;
+            rec.cr = diff.cr + predCr;
+
+            buforYCbCr[x][y] = rec;
+            setYCbCr(x + hwidth, y, rec.y, rec.cb, rec.cr);
+        }
+    }
+}
+
 /* ===== HSL ===== */
 
 HSL getHSL(int xx, int yy){
@@ -2049,9 +2115,9 @@ void zigzagCollect(float dct[rozmiarBloku][rozmiarBloku], float output[256]) {
     int index = 0;
     int x = 0, y = 0;
     bool goingUp = false;
-    
+
     output[index++] = dct[0][0];  // DC coefficient
-    
+
     while(index < 256) {
         if(goingUp) {
             // Idziemy w górę-prawo
@@ -2080,15 +2146,15 @@ void zigzagCollect(float dct[rozmiarBloku][rozmiarBloku], float output[256]) {
                 y++;
             }
         }
-        
+
         if(x >= 0 && x < rozmiarBloku && y >= 0 && y < rozmiarBloku) {
             output[index++] = dct[x][y];
         }
-        
+
         // Sprawdź czy doszliśmy do końca
         if(x == rozmiarBloku - 1 && y == rozmiarBloku - 1) break;
     }
-    
+
     // Wypełnij pozostałe wartości zerami
     while(index < 256) {
         output[index++] = 0.0f;
@@ -2100,9 +2166,9 @@ void zigzagReconstruct(float zigzag[256], float dct[rozmiarBloku][rozmiarBloku])
     int index = 0;
     int x = 0, y = 0;
     bool goingUp = false;
-    
+
     dct[0][0] = zigzag[index++];
-    
+
     while(index < 256) {
         if(goingUp) {
             // Idziemy w górę-prawo (diagonalnie w górę)
@@ -2131,11 +2197,11 @@ void zigzagReconstruct(float zigzag[256], float dct[rozmiarBloku][rozmiarBloku])
                 y++;
             }
         }
-        
+
         if(x >= 0 && x < rozmiarBloku && y >= 0 && y < rozmiarBloku) {
             dct[x][y] = zigzag[index++];
         }
-        
+
         // Sprawdź czy doszliśmy do końca
         if(x == rozmiarBloku - 1 && y == rozmiarBloku - 1) break;
     }
@@ -2146,9 +2212,9 @@ void kompresjaDCT() {
     const int width = hwidth;   // 320
     const int height = hheight; // 200
     const int blokSize = rozmiarBloku; // 16
-    
+
     cout << "\n=== KOMPRESJA DCT ===" << endl;
-    
+
     // KROK 1: Konwersja na skalę szarości (okienko 1 -> okienko 2)
     cout << "Krok 1: Konwersja na skale szarosci..." << endl;
     for(int y = 0; y < height; y++) {
@@ -2159,16 +2225,16 @@ void kompresjaDCT() {
         }
     }
     SDL_UpdateWindowSurface(window);
-    
+
     int liczbaBlokowX = width / blokSize;   // 20
     int liczbaBlokowY = height / blokSize;  // 12
-    
-    cout << "Krok 2-3: Podzial na bloki " << blokSize << "x" << blokSize 
+
+    cout << "Krok 2-3: Podzial na bloki " << blokSize << "x" << blokSize
          << " i transformacja DCT..." << endl;
     cout << "Liczba blokow: " << liczbaBlokowX << " x " << liczbaBlokowY << endl;
-    
+
     int licznikBlokow = 0;
-    
+
     // KROK 2-9: Przetwarzanie każdego bloku
     for(int by = 0; by < liczbaBlokowY; by++) {
         for(int bx = 0; bx < liczbaBlokowX; bx++) {
@@ -2182,10 +2248,10 @@ void kompresjaDCT() {
                     blok.dane[x][y] = pixel.r;
                 }
             }
-            
+
             // KROK 3: Wykonaj DCT
             macierz blokDCT = dct(blok.dane);
-            
+
             // KROK 5a: Wyzeruj prawą dolną część macierzy (przed zebraniem zygzakiem)
             // Wyzeruj współczynniki od pozycji (8,8) do końca
             int progX = 8;
@@ -2195,7 +2261,7 @@ void kompresjaDCT() {
                     blokDCT.dct[x][y] = 0.0f;
                 }
             }
-            
+
             // KROK 5b: Zaokrąglij wszystkie niezerowe współczynniki
             for(int y = 0; y < blokSize; y++) {
                 for(int x = 0; x < blokSize; x++) {
@@ -2204,11 +2270,11 @@ void kompresjaDCT() {
                     }
                 }
             }
-            
+
             // KROK 4: Zbierz współczynniki zygzakowato
             float zigzag[256];
             zigzagCollect(blokDCT.dct, zigzag);
-            
+
             // KROK 6: Wyświetlenie współczynników (tylko dla pierwszego bloku)
             if(licznikBlokow == 0) {
                 cout << "\nKrok 6: Wspolczynniki zygzakowate (pierwszy blok):" << endl;
@@ -2217,14 +2283,14 @@ void kompresjaDCT() {
                     if((i+1) % 16 == 0) cout << endl;
                 }
             }
-            
+
             // KROK 7: Odbuduj macierz z zygzaka (w rzeczywistości już mamy blokDCT.dct,
             // ale pokazujemy że można to zrobić)
             // W tym przypadku nie musimy odbudowywać, bo mamy już zmodyfikowaną macierz
-            
+
             // KROK 8: Wykonaj iDCT
             macierz zrekonstruowany = idct(blokDCT.dct);
-            
+
             // KROK 9: Wizualizacja w okienku 4 (320, 200)
             for(int y = 0; y < blokSize; y++) {
                 for(int x = 0; x < blokSize; x++) {
@@ -2237,15 +2303,15 @@ void kompresjaDCT() {
                     setPixel(px + hwidth, py + hheight, wartosc, wartosc, wartosc);
                 }
             }
-            
+
             licznikBlokow++;
         }
     }
-    
+
     cout << "\nKrok 8-9: Transformacja iDCT i wizualizacja zakonczona." << endl;
     cout << "Przetworzono " << licznikBlokow << " blokow." << endl;
     cout << "=== KONIEC KOMPRESJI DCT ===\n" << endl;
-    
+
     SDL_UpdateWindowSurface(window);
 }
 

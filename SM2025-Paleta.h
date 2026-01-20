@@ -50,6 +50,11 @@ struct HSL{
     float l;
 };
 
+
+void filtrujYCbCr_Typ3(bool isGray);
+void odfiltrujYCbCr_Typ3();
+
+
 void wyswietlDane(macierz blok);
 void wyswietlDCT(macierz blok);
 macierz dct(Uint8 wartosci[rozmiarBloku][rozmiarBloku]);

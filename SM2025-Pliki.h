@@ -58,7 +58,8 @@ RLEColors kompresjaObrazu_RLE(Kolor colors[], int len);
 Kolor* dekompresjaObrazu_RLE(RLEColors* colors);
 void zapisz_RLE(RLEColors* colors, const char* filename);
 void wczytaj_RLE(RLEColors* colors, const char* filename);
-
+void zapiszPojedynczyRLE(std::ofstream& out, RLE* rle);
+void wczytajPojedynczyRLE(std::ifstream& in, RLE* rle);
 /*
 Funkcje i struktury LZW
 */
@@ -111,5 +112,7 @@ void wczytaj_LZW(LZWColors* colors, const char* filename);
 
 
 
+
+void zapiszRLEdoStrumienia(ofstream& plik, RLEColors* rle);
 
 #endif // SM2025_PLIKI_H_INCLUDED

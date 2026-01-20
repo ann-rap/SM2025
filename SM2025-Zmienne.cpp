@@ -27,3 +27,6 @@ int filtrTypPNG[200];
 int filtrTypYUV[200];
 int filtrTypRGB555[200];
 int filtrTypRGB565[200];
+YCbCr filtrYCbCr[320][200];
+YCbCr buforYCbCr[320][200];
+

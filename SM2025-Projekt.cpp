@@ -3,6 +3,7 @@
 #include "SM2025-Funkcje.h"
 #include "SM2025-Paleta.h"
 #include "SM2025-MedianCut.h"
+#include <thread>
 
 #include <exception>
 #include <string.h>
@@ -33,6 +34,10 @@ int main(int argc, char* argv[]) {
     }
     SDL_UpdateWindowSurface(window);
 
+    std::thread menuWatek(AppMenu);
+
+    // Detach pozwala wątkowi działać w tle, podczas gdy main idzie dalej
+    menuWatek.detach();
 
     bool done = false;
     SDL_Event event;
@@ -43,6 +48,8 @@ int main(int argc, char* argv[]) {
             case SDL_QUIT:
                 done = true;
                 break;
+
+
 
             // sprawdzamy czy został wciśnięty klawisz
             case SDL_KEYDOWN: {
@@ -89,12 +96,7 @@ int main(int argc, char* argv[]) {
                     czyscEkran(0, 0, 0);
                 if (event.key.keysym.sym == SDLK_r)
                     MenuRLE();
-                if (event.key.keysym.sym == SDLK_w) {
-                    cout << "Podaj numer wiersza (0-" << (hheight-1) << "): ";
-                    int wiersz;
-                    cin >> wiersz;
-                    wypiszWiersz(wiersz);
-                    }
+
                 else
                     break;
                }
