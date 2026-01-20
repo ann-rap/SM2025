@@ -3,30 +3,15 @@
 SDL_Window* window = NULL;
 SDL_Surface* screen = NULL;
 
-
-SDL_Color paleta6[64];
-int ileKolorow = 0;
-
-
-SDL_Color paleta6k[64];
-SDL_Color paleta6s[64];
-
-int ileKubelkow=0;
-Uint8 obrazekS[320*200];
-SDL_Color obrazekK[320*200];
-int obrazekIn[320*200];
-int obrazekInS[320*200];
-int indeksy[320][200];
-extern SDL_Color paleta6s[64];
-
 float zaktualizowanaTablicaBayera4k[4][4];
 float zaktualizowanaTablicaBayera4s[4][4];
 
 
 int filtrTypPNG[200];
-int filtrTypYUV[200];
 int filtrTypRGB555[200];
-int filtrTypRGB565[200];
 YCbCr filtrYCbCr[320][200];
 YCbCr buforYCbCr[320][200];
-
+ int BLOK_DCT = 8;
+ SDL_Color buforPNG[320][200];
+ Uint16 buforRGB555[320][200];
+ Kolor subcolors[320][200];

@@ -25,9 +25,10 @@ SDL_Color getPixel(int x, int y);
 void czyscEkran(Uint8 R, Uint8 G, Uint8 B);
 void ladujBMP(char const* nazwa, int x, int y);
 void rysujZStrukturyWynik(WynikStruct* wynik, int offsetX, int offsetY);
+void zapiszCwiartkeJakoBMP(string nazwa);
 
-void MenuRLE();
-void wypiszWiersz(int y);
+void wczytajDG24(string nazwaPliku);
+void zapiszDG24(string nazwaPliku, uint8_t tryb, uint8_t predykcja, uint8_t kompresja);
 
 
 

@@ -7121,7 +7121,7 @@
 	"SM2025-Pliki.h"
 	<fstream>
 
-1768883029 source:c:\users\dominik\downloads\sm2025-projekt-z21-09\sm2025-master\sm2025-funkcje.cpp
+1768934301 source:c:\users\dominik\downloads\sm2025-projekt-z21-09\sm2025-master\sm2025-funkcje.cpp
 	"SM2025-Funkcje.h"
 	"SM2025-Zmienne.h"
 	"SM2025-Paleta.h"
@@ -7131,7 +7131,7 @@
 	<string>
 	<fstream>
 
-1768864845 c:\users\dominik\downloads\sm2025-projekt-z21-09\sm2025-master\sm2025-funkcje.h
+1768924080 c:\users\dominik\downloads\sm2025-projekt-z21-09\sm2025-master\sm2025-funkcje.h
 	<stdio.h>
 	<math.h>
 	<SDL2/SDL.h>
@@ -7530,7 +7530,7 @@
 	"begin_code.h"
 	"close_code.h"
 
-1768883726 c:\users\dominik\downloads\sm2025-projekt-z21-09\sm2025-master\sm2025-paleta.h
+1768920305 c:\users\dominik\downloads\sm2025-projekt-z21-09\sm2025-master\sm2025-paleta.h
 	<stdio.h>
 	<stdlib.h>
 	<SDL2/SDL.h>
@@ -7539,7 +7539,7 @@
 	<algorithm>
 	<iomanip>
 
-1768883907 c:\users\dominik\downloads\sm2025-projekt-z21-09\sm2025-master\sm2025-zmienne.h
+1768932682 c:\users\dominik\downloads\sm2025-projekt-z21-09\sm2025-master\sm2025-zmienne.h
 	<SDL2/SDL.h>
 	"SM2025-Paleta.h"
 
@@ -7547,7 +7547,7 @@
 	<SDL2/SDL.h>
 	"SM2025-Paleta.h"
 
-1768874009 c:\users\dominik\downloads\sm2025-projekt-z21-09\sm2025-master\sm2025-pliki.h
+1768920174 c:\users\dominik\downloads\sm2025-projekt-z21-09\sm2025-master\sm2025-pliki.h
 	<stdio.h>
 	<math.h>
 	<fstream>
@@ -7561,12 +7561,12 @@
 	"SM2025-Paleta.h"
 	<iostream>
 
-1768882795 source:c:\users\dominik\downloads\sm2025-projekt-z21-09\sm2025-master\sm2025-paleta.cpp
+1768934600 source:c:\users\dominik\downloads\sm2025-projekt-z21-09\sm2025-master\sm2025-paleta.cpp
 	"SM2025-Paleta.h"
 	"SM2025-Zmienne.h"
 	"SM2025-Funkcje.h"
 
-1768873274 source:c:\users\dominik\downloads\sm2025-projekt-z21-09\sm2025-master\sm2025-pliki.cpp
+1768920174 source:c:\users\dominik\downloads\sm2025-projekt-z21-09\sm2025-master\sm2025-pliki.cpp
 	"SM2025-Funkcje.h"
 	"SM2025-Zmienne.h"
 	"SM2025-Paleta.h"
@@ -7574,12 +7574,15 @@
 	"SM2025-Pliki.h"
 	<fstream>
 
-1768876165 source:c:\users\dominik\downloads\sm2025-projekt-z21-09\sm2025-master\sm2025-projekt.cpp
+1768924457 source:c:\users\dominik\downloads\sm2025-projekt-z21-09\sm2025-master\sm2025-projekt.cpp
 	"SM2025-Zmienne.h"
 	"SM2025-Funkcje.h"
 	"SM2025-Paleta.h"
 	"SM2025-MedianCut.h"
+	"SM2025-Pliki.h"
 	<thread>
+	<string>
+	<fstream>
 	<exception>
 	<string.h>
 	<iostream>
@@ -7588,6 +7591,6 @@
 	<math.h>
 	<SDL2/SDL.h>
 
-1768883770 source:c:\users\dominik\downloads\sm2025-projekt-z21-09\sm2025-master\sm2025-zmienne.cpp
+1768932682 source:c:\users\dominik\downloads\sm2025-projekt-z21-09\sm2025-master\sm2025-zmienne.cpp
 	"SM2025-Zmienne.h"
 
