@@ -49,15 +49,13 @@
 		<ExtraCommands>
 			<Add after="XCOPY .\SDL2\bin\*.dll $(TARGET_OUTPUT_DIR) /D /Y" />
 		</ExtraCommands>
-		<Unit filename="SM2025-Projekt.cpp" />
 		<Unit filename="SM2025-Funkcje.cpp" />
 		<Unit filename="SM2025-Funkcje.h" />
 		<Unit filename="SM2025-Paleta.cpp" />
 		<Unit filename="SM2025-Paleta.h" />
 		<Unit filename="SM2025-Pliki.cpp" />
 		<Unit filename="SM2025-Pliki.h" />
-		<Unit filename="SM2025-MedianCut.cpp" />
-		<Unit filename="SM2025-MedianCut.h" />
+		<Unit filename="SM2025-Projekt.cpp" />
 		<Unit filename="SM2025-Zmienne.cpp" />
 		<Unit filename="SM2025-Zmienne.h" />
 		<Extensions>

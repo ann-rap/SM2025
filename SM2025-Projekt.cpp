@@ -3,6 +3,10 @@
 #include "SM2025-Funkcje.h"
 #include "SM2025-Paleta.h"
 #include "SM2025-MedianCut.h"
+#include "SM2025-Pliki.h"
+#include <thread>
+#include <string>
+#include <fstream>
 
 #include <exception>
 #include <string.h>
@@ -12,6 +16,125 @@
 #include <math.h>
 #include <SDL2/SDL.h>
 using namespace std;
+
+bool czyPlikIstnieje(string nazwa) {
+    ifstream f(nazwa.c_str());
+    return f.good();
+}
+
+
+
+
+
+void menu() {
+    cout << "\n=== PROJEKT SM2025 ===\n";
+    cout << "Wpisz 'q' aby wrocic do podgladu.\n";
+
+    string in, out;
+    char choice;
+    int tryb = 1;
+    int kompresja = 0;
+    int predykcja = 0;
+
+    SDL_Event e;
+    while(SDL_PollEvent(&e)) {}
+
+    while (true) {
+        cout << "\n[MENU] Podaj plik wejsciowy: ";
+        cin >> in;
+
+        if (in == "q") {
+            cout << "Powrot do okna graficznego.\n";
+            return;
+        }
+
+        if (!czyPlikIstnieje(in)) {
+            cout << "Plik nie istnieje!\n";
+            continue;
+        }
+
+        bool isCustom = (in.length() >= 5 && in.substr(in.length() - 5) == ".dg24");
+
+        if (isCustom) {
+            wczytajDG24(in);
+        } else {
+            ladujBMP(in.c_str(), 0, 0);
+        }
+
+        SDL_UpdateWindowSurface(window);
+        while(SDL_PollEvent(&e));
+
+        if (isCustom) {
+            cout << "Podaj plik wyjsciowy (BMP): ";
+            cin >> out;
+            if (out.length() < 4 || out.substr(out.length() - 4) != ".bmp") out += ".bmp";
+
+            zapiszCwiartkeJakoBMP(out);
+            cout << "Zapisano BMP.\n";
+        }
+        else {
+            cout << "Podaj plik wyjsciowy (DG24): ";
+            cin >> out;
+            if (out.length() < 5 || out.substr(out.length() - 5) != ".dg24") out += ".dg24";
+
+            cout << "Tryb 16-bit? (y/n): ";
+            cin >> choice;
+
+            if (choice == 'y') {
+                cout << "Dithering? (y/n): ";
+                cin >> choice;
+                tryb = (choice == 'y') ? 3 : 0;
+
+                cout << "Predykcja? (y/n): ";
+                cin >> choice;
+                predykcja = (choice == 'y') ? 1 : 0;
+
+                cout << "Kompresja RLE? (y/n): ";
+                cin >> choice;
+                kompresja = (choice == 'y') ? 1 : 0;
+            }
+            else {
+                cout << "RGB? (y - Tak | n - YCbCr): ";
+                cin >> choice;
+                bool isRGB = (choice == 'y');
+
+                cout << "Skala szarosci? (y/n): ";
+                cin >> choice;
+                bool isGray = (choice == 'y');
+
+                if (isRGB) {
+                    tryb = isGray ? 4 : 1;
+
+                    cout << "Kompresja RLE? (y/n): ";
+                    cin >> choice;
+                    kompresja = (choice == 'y') ? 1 : 0;
+
+                    cout << "Predykcja? (y/n): ";
+                    cin >> choice;
+                    predykcja = (choice == 'y') ? 1 : 0;
+                } else {
+                    tryb = isGray ? 5 : 2;
+
+                    int k;
+                    cout << "Kompresja? (2-DCT | 1-RLE | 0-Brak): ";
+                    cin >> k;
+                    if (k != 1 && k != 2) k = 0;
+                    kompresja = k;
+
+                    if (kompresja != 2) {
+                        cout << "Predykcja? (y/n): ";
+                        cin >> choice;
+                        predykcja = (choice == 'y') ? 1 : 0;
+                    } else {
+                        predykcja = 0;
+                    }
+                }
+            }
+            zapiszDG24(out, tryb, predykcja, kompresja);
+        }
+    }
+}
+
 
 int main(int argc, char* argv[]) {
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
@@ -33,6 +156,10 @@ int main(int argc, char* argv[]) {
     }
     SDL_UpdateWindowSurface(window);
 
+    std::thread menuWatek(menu);
+
+    // Detach pozwala wątkowi działać w tle, podczas gdy main idzie dalej
+    menuWatek.detach();
 
     bool done = false;
     SDL_Event event;
@@ -43,6 +170,8 @@ int main(int argc, char* argv[]) {
             case SDL_QUIT:
                 done = true;
                 break;
+
+
 
             // sprawdzamy czy został wciśnięty klawisz
             case SDL_KEYDOWN: {
@@ -87,14 +216,7 @@ int main(int argc, char* argv[]) {
                     ladujBMP("obrazek9.bmp", 0, 0);
                 if (event.key.keysym.sym == SDLK_b)
                     czyscEkran(0, 0, 0);
-                if (event.key.keysym.sym == SDLK_r)
-                    MenuRLE();
-                if (event.key.keysym.sym == SDLK_w) {
-                    cout << "Podaj numer wiersza (0-" << (hheight-1) << "): ";
-                    int wiersz;
-                    cin >> wiersz;
-                    wypiszWiersz(wiersz);
-                    }
+
                 else
                     break;
                }
